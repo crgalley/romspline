@@ -19,7 +19,7 @@ To set up `romSpline`, download or clone this repository and add the download pa
 
 See the accompanying IPython notebook (romSpline_example.ipynb) for a simple tutorial on using the code.
 
-##### Author information #####
+#### Author information ####
 Copyright (C) 2015 Chad Galley (*crgalley@tapir.caltech.edu*, *crgalley@gmail.com*). 
 Released under the MIT license.
 Comments and requests welcome.
