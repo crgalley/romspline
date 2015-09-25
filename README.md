@@ -1,28 +1,28 @@
-# README #
+# Welcome to romSpline #
 
-This README would normally document whatever steps are necessary to get your application up and running.
+romSpline is an easy-to-use code for generating a reduced-order spline 
+interpolant of 1d data.
 
-### What is this repository for? ###
+romSpline uses a greedy algorithm on 1d data to find a minimal subset of 
+samples for recovering the original data, to the requested tolerance, with 
+a univariate spline interpolant. This code should be useful for downsampling 
+or compressing large data arrays to their essential components needed for 
+reconstructing the original information. The degree of downsampling is 
+often significant (e.g., orders of magnitude) for relatively smooth data.
 
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
+See the accompanying IPython notebook (romSpline_example.ipynb) for a 
+tutorial on using the code.
 
 ### How do I get set up? ###
 
-* Summary of set up
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
+To set up romSpline, download or clone this repository and add the path to
+romSpline to your PYTHONPATH variable.
 
-### Contribution guidelines ###
+*romSpline* requires numpy, scipy, and h5py, which come with most Python
+distributions.
 
-* Writing tests
-* Code review
-* Other guidelines
 
+Written by Chad Galley (crgalley@tapir.caltech.edu, crgalley@gmail.com)
 ### Who do I talk to? ###
 
 * Repo owner or admin
