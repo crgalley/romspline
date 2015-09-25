@@ -1,14 +1,17 @@
 # Welcome to romSpline #
 
-`romSpline` is an easy-to-use code for generating a reduced-order spline 
-interpolant of 1d data.
+`romSpline` is an easy-to-use code for generating a reduced-order model for 
+spline interpolation of 1d data.
 
 `romSpline` uses a greedy algorithm on 1d data to find a minimal subset of 
 samples that recovers the original data, to the requested tolerance, with 
-a univariate spline interpolant. This code should be useful for downsampling 
-or compressing large data arrays to their essential components from which 
-the original information can be constructed. The degree of downsampling is 
-often significant (e.g., orders of magnitude) for relatively smooth data.
+a univariate spline interpolant. The output is the minimal subset of data
+and the corresponding reduced-order spline interpolant.
+
+This code should be useful for downsampling or compressing large data arrays 
+to their essential components from which the original information can be 
+constructed. The degree of downsampling is often significant (e.g., orders 
+of magnitude) for relatively smooth data.
 
 
 ### Installation ###
