@@ -1,9 +1,9 @@
 # Welcome to romSpline #
 
-romSpline is an easy-to-use code for generating a reduced-order spline 
+`romSpline` is an easy-to-use code for generating a reduced-order spline 
 interpolant of 1d data.
 
-romSpline uses a greedy algorithm on 1d data to find a minimal subset of 
+`romSpline` uses a greedy algorithm on 1d data to find a minimal subset of 
 samples for recovering the original data, to the requested tolerance, with 
 a univariate spline interpolant. This code should be useful for downsampling 
 or compressing large data arrays to their essential components needed for 
@@ -13,10 +13,10 @@ often significant (e.g., orders of magnitude) for relatively smooth data.
 
 ### Installation ###
 
-To set up romSpline, download or clone this repository and add the path to
+To set up `romSpline`, download or clone this repository and add the path to
 romSpline to your PYTHONPATH variable.
 
-*romSpline* requires numpy, scipy, and h5py, which come with most Python
+`romSpline` requires numpy, scipy, and h5py, which come with most Python
 distributions.
 
 
