@@ -10,10 +10,8 @@ or compressing large data arrays to their essential components needed for
 reconstructing the original information. The degree of downsampling is 
 often significant (e.g., orders of magnitude) for relatively smooth data.
 
-See the accompanying IPython notebook (romSpline_example.ipynb) for a 
-tutorial on using the code.
 
-### How do I get set up? ###
+### Installation ###
 
 To set up romSpline, download or clone this repository and add the path to
 romSpline to your PYTHONPATH variable.
@@ -22,8 +20,10 @@ romSpline to your PYTHONPATH variable.
 distributions.
 
 
-Written by Chad Galley (crgalley@tapir.caltech.edu, crgalley@gmail.com)
-### Who do I talk to? ###
+### Getting started ###
 
-* Repo owner or admin
-* Other community or team contact
+See the accompanying IPython notebook (romSpline_example.ipynb) for a 
+tutorial on using the code.
+
+
+Written by Chad Galley (crgalley@tapir.caltech.edu, crgalley@gmail.com). Comments and requests welcome.
