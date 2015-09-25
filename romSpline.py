@@ -61,6 +61,7 @@ class ReducedOrderSpline(object):
     """Seed the greedy algorithm with (deg+1) evenly spaced indices"""
     f = lambda m, n: [ii*n//m + n//(2*m) for ii in range(m)]
     self.indices = np.sort(np.hstack([[0, len(x)-1], f(self._deg-1, len(x))]))
+    self._indices = self.indices[:]  # Keep track of unsorted indices
     self.errors = []
     
   def greedy(self, x, y, deg=5, tol=1e-6, verbose=False):
@@ -113,6 +114,7 @@ class ReducedOrderSpline(object):
       
       # Update arrays with "worst knot"
       self.errors.append( errors[imax] )
+      self._indices = np.hstack([self._indices, imax])
       self.indices = np.sort(np.hstack([self.indices, imax]))  # Knots must be sorted
       
       # Print to screen, if requested
@@ -181,5 +183,4 @@ def readSpline(self, file):
     data = fp['data'][:]
     fp.close()
     return UnivariateSpline(knots, data, k=deg, s=0)
-    
     
