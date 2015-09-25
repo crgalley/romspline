@@ -131,6 +131,8 @@ class ReducedOrderSpline(object):
     self._spline = UnivariateSpline(x[self.indices], y[self.indices], k=deg, s=0)
     self.knots = x[self.indices]
     self._data = y[self.indices]
+    self.size = len(self.indices)
+    self.compression = float(len(y))/self.size
     
   def __call__(self, x, dx=0):
     return self.eval(x, dx=dx)
