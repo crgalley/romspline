@@ -26,4 +26,4 @@ See the accompanying IPython notebook (romSpline_example.ipynb) for a
 tutorial on using the code.
 
 
-Written by Chad Galley (crgalley@tapir.caltech.edu, crgalley@gmail.com). Comments and requests welcome.
+Written by Chad Galley (*crgalley@tapir.caltech.edu*, *crgalley@gmail.com*). Comments and requests welcome.
