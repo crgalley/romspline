@@ -47,15 +47,16 @@ from scipy.interpolate import UnivariateSpline
 class ReducedOrderSpline(object):
   """Class for building a reduced-order spline interpolant"""
   
-  def __init__(self, x=None, y=None, deg=5, tol=1e-6, verbose=False):
+  def __init__(self, x=None, y=None, deg=5, tol=1e-6, rel=False, verbose=False):
     self._deg = deg
+    self._spline_made = False
   
     # Run greedy algorithm if data is given for class instantiation
     if y is not None:
       if x is None:
         x = np.arange(len(y))
       assert len(x) == len(y), "Array sizes must be equal."
-      self.greedy(x, y, deg=deg, tol=tol, verbose=verbose)
+      self.greedy(x, y, deg=deg, tol=tol, rel=rel, verbose=verbose)
     
   def _seed(self, x):
     """Seed the greedy algorithm with (deg+1) evenly spaced indices"""
@@ -64,7 +65,7 @@ class ReducedOrderSpline(object):
     self._indices = self.indices[:]  # Keep track of unsorted indices
     self.errors = []
     
-  def greedy(self, x, y, deg=5, tol=1e-6, verbose=False):
+  def greedy(self, x, y, deg=5, tol=1e-6, rel=False, verbose=False):
     """
     Greedy algorithm for finding optimal knots to build a reduced-order 
     spline interpolant
@@ -77,6 +78,8 @@ class ReducedOrderSpline(object):
                (default 5)
     tol     -- L-infinity error tolerance for reduced-order spline 
                (default 1e-6)
+    rel     -- L-infinity error tolerance is relative to max abs of data?
+               (default is False)
     verbose -- write greedy algorithm output to screen 
                (default False)
     
@@ -97,12 +100,19 @@ class ReducedOrderSpline(object):
       print "\nSize", "\t", "Error"
       print "="*13
     
+    if rel:
+      ymax = np.max(np.abs(y))
+      assert ymax > 0., "All data samples are zero."
+    else:
+      ymax = 1.
+    self._tol = tol*ymax
+    
     # Seed greedy algorithm
     self._seed(x)
       
     # Greedy algorithm
-    flag, ctr = 0, 1
-    while flag == 0:	
+    flag, ctr = 0, 1  
+    while flag == 0 and ctr < len(x)-deg:	
       # Spline interpolant on current set of knots
       s = UnivariateSpline(x[self.indices], y[self.indices], k=deg, s=0)
       
@@ -122,7 +132,7 @@ class ReducedOrderSpline(object):
         print ctr, "\t", self.errors[-1]
       
       # Check if greedy error is below tolerance and exit if so
-      if self.errors[-1] < tol:
+      if self.errors[-1] < self._tol:
         flag = 1
       
       ctr += 1
@@ -133,6 +143,7 @@ class ReducedOrderSpline(object):
     self._data = y[self.indices]
     self.size = len(self.indices)
     self.compression = float(len(y))/self.size
+    self._spline_made = True
     
   def __call__(self, x, dx=0):
     return self.eval(x, dx=dx)
@@ -141,6 +152,16 @@ class ReducedOrderSpline(object):
     """Evaluate reduced-order spline or its dx derviatives at x"""
     return self._spline(x, dx)
   
+  def verify(self, x, y):
+    """Verify the reduced-order spline on the training data"""
+    if self._spline_made:
+      errors = y - self._spline(x)
+    else:
+      raise Exception, "No spline interpolant to compare against. Run the greedy method."
+    print "Reduced-order spline meets tolerance:", np.all(np.abs(errors) <= self._tol)
+    # TODO: Add plot of training data errors?
+    return errors
+    
   def read(self, file):
     """Load spline interpolant data from HDF5 file format"""
     try:
