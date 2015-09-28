@@ -10,7 +10,13 @@ This code should be useful for downsampling or compressing large data arrays to 
 
 ### Installation ###
 
-To set up `romSpline`, download or clone this repository and add the download path to your PYTHONPATH variable.
+To set up `romSpline`, download or clone this repository and add the download path to your PYTHONPATH variable. 
+
+Alternatively, include the following lines in your Python code:
+
+* import sys
+* sys.path.append(<path to romSpline>)
+* import romSpline
 
 `romSpline` requires `numpy`, `scipy`, and `h5py`, which come with most Python distributions.
 
