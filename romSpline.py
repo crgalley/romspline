@@ -111,8 +111,8 @@ class ReducedOrderSpline(object):
     self._seed(x)
       
     # Greedy algorithm
-    flag, ctr = 0, 1  
-    while flag == 0 and ctr < len(x)-deg:	
+    flag, ctr = 0, len(self.indices)
+    while flag == 0 and ctr < len(x):	
       # Spline interpolant on current set of knots
       s = UnivariateSpline(x[self.indices], y[self.indices], k=deg, s=0)
       
@@ -164,6 +164,7 @@ class ReducedOrderSpline(object):
     
   def read(self, file):
     """Load spline interpolant data from HDF5 file format"""
+    # TODO: Include text and/or binary formats
     try:
       fp = h5py.File(file, 'r')
       isopen = True
@@ -179,6 +180,7 @@ class ReducedOrderSpline(object):
   
   def write(self, file):
     """Write spline interpolant data to HDF5 file format"""
+    # TODO: Include text and/or binary formats
     try:
       fp = h5py.File(file, 'w')
       isopen = True
@@ -195,6 +197,7 @@ class ReducedOrderSpline(object):
 def readSpline(self, file):
   """Load spline interpolant data from HDF5 file format 
   without having to instantiate ReducedOrderSpline class"""
+  # TODO: Include text and/or binary formats
   try:
     fp = h5py.File(file, 'r')
     isopen = True
