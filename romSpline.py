@@ -105,7 +105,8 @@ class ReducedOrderSpline(object):
       assert ymax > 0., "All data samples are zero."
     else:
       ymax = 1.
-    self._tol = tol*ymax
+    self._tol = tol
+    self.tol = self._tol*ymax
     
     # Seed greedy algorithm
     self._seed(x)
@@ -132,7 +133,7 @@ class ReducedOrderSpline(object):
         print ctr, "\t", self.errors[-1]
       
       # Check if greedy error is below tolerance and exit if so
-      if self.errors[-1] < self._tol:
+      if self.errors[-1] < self.tol:
         flag = 1
       
       ctr += 1
@@ -158,7 +159,7 @@ class ReducedOrderSpline(object):
       errors = y - self._spline(x)
     else:
       raise Exception, "No spline interpolant to compare against. Run the greedy method."
-    print "Reduced-order spline meets tolerance:", np.all(np.abs(errors) <= self._tol)
+    print "Reduced-order spline meets tolerance:", np.all(np.abs(errors) <= self.tol)
     # TODO: Add plot of training data errors?
     return errors
     
@@ -172,11 +173,13 @@ class ReducedOrderSpline(object):
       raise Exception, "Could not open file for reading."
     if isopen:
       self._deg = fp['deg'][()]
+      self.tol = fp['tol'][()]
       self.knots = fp['knots'][:]
       self._data = fp['data'][:]
       self.errors = fp['errors'][:]
       fp.close()
       self._spline = UnivariateSpline(self.knots, self._data, k=self._deg, s=0)
+      self._spline_made = True
   
   def write(self, file):
     """Write spline interpolant data to HDF5 file format"""
@@ -188,6 +191,7 @@ class ReducedOrderSpline(object):
       raise Exception, "Could not open file for writing."
     if isopen:
       fp.create_dataset('deg', data=self._deg, dtype='int')
+      fp.create_dataset('tol', data=self.tol, dtype='double')
       fp.create_dataset('knots', data=self.knots, dtype='double', compression='gzip', shuffle=True)
       fp.create_dataset('data', data=self._data, dtype='double', compression='gzip', shuffle=True)
       fp.create_dataset('errors', data=self.errors, dtype='double', compression='gzip', shuffle=True)
