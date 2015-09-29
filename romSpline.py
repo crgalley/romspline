@@ -47,8 +47,11 @@ from scipy.interpolate import UnivariateSpline
 class ReducedOrderSpline(object):
   """Class for building a reduced-order spline interpolant"""
   
-  def __init__(self, x=None, y=None, deg=5, tol=1e-6, rel=False, verbose=False):
+  # TODO: Accommodate arrays of arrays
+  
+  def __init__(self, x=None, y=None, deg=5, tol=1e-6, rel=False, verbose=False, seeds=None):
     self._deg = deg
+    self._rel = rel
     self._spline_made = False
   
     # Run greedy algorithm if data is given for class instantiation
@@ -56,16 +59,19 @@ class ReducedOrderSpline(object):
       if x is None:
         x = np.arange(len(y))
       assert len(x) == len(y), "Array sizes must be equal."
-      self.greedy(x, y, deg=deg, tol=tol, rel=rel, verbose=verbose)
+      self.greedy(x, y, deg=deg, tol=tol, rel=rel, verbose=verbose, seeds=seeds)
     
-  def _seed(self, x):
+  def _seed(self, x, seeds=None):
     """Seed the greedy algorithm with (deg+1) evenly spaced indices"""
-    f = lambda m, n: [ii*n//m + n//(2*m) for ii in range(m)]
-    self.indices = np.sort(np.hstack([[0, len(x)-1], f(self._deg-1, len(x))]))
+    if seeds is None:
+      f = lambda m, n: [ii*n//m + n//(2*m) for ii in range(m)]
+      self.indices = np.sort(np.hstack([[0, len(x)-1], f(self._deg-1, len(x))]))
+    else:
+      self.indices = seeds
     self._indices = self.indices[:]  # Keep track of unsorted indices
     self.errors = []
     
-  def greedy(self, x, y, deg=5, tol=1e-6, rel=False, verbose=False):
+  def greedy(self, x, y, deg=5, tol=1e-6, rel=False, verbose=False, seeds=None):
     """
     Greedy algorithm for finding optimal knots to build a reduced-order 
     spline interpolant
@@ -96,6 +102,9 @@ class ReducedOrderSpline(object):
     as the samples.
     """
     
+    self._deg = deg
+    self._rel = rel
+    
     if verbose:
       print "\nSize", "\t", "Error"
       print "="*13
@@ -109,10 +118,10 @@ class ReducedOrderSpline(object):
     self.tol = self._tol*ymax
     
     # Seed greedy algorithm
-    self._seed(x)
+    self._seed(x, seeds=seeds)
       
     # Greedy algorithm
-    flag, ctr = 0, len(self.indices)
+    flag, ctr = 0, len(self.indices)+1
     while flag == 0 and ctr < len(x):	
       # Spline interpolant on current set of knots
       s = UnivariateSpline(x[self.indices], y[self.indices], k=deg, s=0)
@@ -135,6 +144,9 @@ class ReducedOrderSpline(object):
       # Check if greedy error is below tolerance and exit if so
       if self.errors[-1] < self.tol:
         flag = 1
+        self._indices = self._indices[:-1]
+        self.indices = np.sort(self._indices)
+        self.errors = np.array(self.errors[:-1])
       
       ctr += 1
     
