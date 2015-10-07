@@ -4,12 +4,16 @@
 romSpline is an easy-to-use code for generating a reduced-order spline 
 interpolant of 1d data.
 
-romSpline uses a greedy algorithm on 1d data to find a minimal subset of 
+romSpline uses a greedy algorithm on 1d data to find a nearly minimal subset of 
 samples for recovering the original data, to the requested tolerance, with 
 a univariate spline interpolant. This code should be useful for downsampling 
 or compressing large data arrays to their essential components needed for 
 reconstructing the original information. The degree of downsampling is 
 often significant (e.g., orders of magnitude) for relatively smooth data.
+
+Future versions of romSpline will include support for multi-dimensional data 
+and for quantifying the uncertainty of the output spline interpolant on
+data not used for training the underlying greedy algorithm.
 
 See the accompanying IPython notebook (romSpline_example.ipynb) for a 
 tutorial on using the code.
@@ -41,6 +45,7 @@ THE SOFTWARE.
 
 
 import numpy as np, h5py
+import os
 from scipy.interpolate import UnivariateSpline
 
 
@@ -150,60 +155,205 @@ class ReducedOrderSpline(object):
     # TODO: Add plot of training data errors?
     return errors
     
+  def write(self, file):
+    """
+    Write spline interpolant data to HDF5 or text format
+    
+    Input
+    =====
+    file -- write data to this file assuming form of
+            /my/directory/filename.extension
+    """
+    
+    # Get file name and extension
+    types = ['.txt', '.h5', '.hdf5']
+    filename, file_extension = os.path.splitext(file)
+    assert file_extension in types, "File type must be have extension txt, h5, or hdf5."
+    
+    # HDF5 format
+    if file_extension == '.h5' or file_extension == '.hdf5':
+      try:
+        fp = h5py.File(file, 'w')
+        isopen = True
+      except:
+        raise Exception, "Could not open file for writing."
+      if isopen:
+        fp.create_dataset('deg', data=self._deg, dtype='int')
+        fp.create_dataset('tol', data=self.tol, dtype='double')
+        fp.create_dataset('knots', data=self.knots, dtype='double', compression='gzip', shuffle=True)
+        fp.create_dataset('data', data=self._data, dtype='double', compression='gzip', shuffle=True)
+        fp.create_dataset('errors', data=self.errors, dtype='double', compression='gzip', shuffle=True)
+        fp.close()
+    
+    # Text format
+    if file_extension == '.txt':
+      # Make directory with given filename
+      if not os.path.exists(file):
+          os.makedirs(file)
+      
+      # Write polynomial degree of reduced-order spline
+      fp = open(file+'/deg.txt', 'w')
+      fp.write(str(self._deg))
+      fp.close()
+      
+      # Write greedy algorithm tolerance
+      fp = open(file+'/tol.txt', 'w')
+      fp.write(str(self.tol))
+      fp.close()
+      
+      # Write nearly optimal subset of x data (i.e., "knots")
+      fp = open(file+'/x.txt', 'w')
+      for xx in self.knots:
+        fp.write(str(xx)+'\n')
+      fp.close()
+      
+      # Write nearly optimal subset of y data
+      fp = open(file+'/y.txt', 'w')
+      for yy in self._data:
+        fp.write(str(yy)+'\n')
+      fp.close()
+      
+      # Write L-infinity spline errors from greedy algorithm
+      fp = open(file+'/errors.txt', 'w')
+      for ee in self.errors:
+        fp.write(str(ee)+'\n')
+      fp.close()
+  
   def read(self, file):
-    """Load spline interpolant data from HDF5 file format"""
-    # TODO: Include text and/or binary formats
+    """
+    Load spline interpolant data from HDF5 or text format
+    
+    Input
+    =====
+    file -- load data from this file assuming form of
+            /my/directory/filename.extension
+    """
+
+    # Get file name and extension
+    types = ['.txt', '.h5', '.hdf5']
+    filename, file_extension = os.path.splitext(file)
+    assert file_extension in types, "File type must be have extension txt, h5, or hdf5."
+    
+    # HDF5 format
+    if file_extension == '.h5' or file_extension == '.hdf5':
+      try:
+        fp = h5py.File(file, 'r')
+        isopen = True
+      except:
+        raise Exception, "Could not open file for reading."
+      if isopen:
+        self._deg = fp['deg'][()]
+        self.tol = fp['tol'][()]
+        self.knots = fp['knots'][:]
+        self._data = fp['data'][:]
+        self.errors = fp['errors'][:]
+        fp.close()
+        self._spline = UnivariateSpline(self.knots, self._data, k=self._deg, s=0)
+        self._made = True
+    
+    # Text format
+    if file_extension == '.txt':
+      try:
+        fp_deg = open(file+'/deg.txt', 'r')
+        fp_tol = open(file+'/tol.txt', 'r')
+        fp_x = open(file+'/x.txt', 'r')
+        fp_y = open(file+'/y.txt', 'r')
+        fp_errs = open(file+'/errors.txt', 'r')
+        isopen = True
+      except:
+        raise IOError, "Could not open file(s) for reading."
+      
+      if isopen:
+        self._deg = int(fp_deg.read())
+        fp_deg.close()
+        
+        self.tol = float(fp_tol.read())
+        fp_tol.close()
+        
+        self.knots = []
+        for line in fp_x:
+          self.knots.append( float(line) )
+        self.knots = np.array(self.knots)
+        fp_x.close()
+        
+        self._data = []
+        for line in fp_y:
+          self._data.append( float(line) )
+        self._data = np.array(self._data)
+        fp_y.close()
+        
+        self.errors = []
+        for line in fp_errs:
+          self.errors.append( float(line) )
+        self.errors = np.array(self.errors)
+        fp_errs.close()
+        
+        self._spline = UnivariateSpline(self.knots, self._data, k=self._deg, s=0)
+        self._made = True
+        
+
+def readSpline(file):
+  """
+  Load spline interpolant data from HDF5 or text format 
+  without having to instantiate ReducedOrderSpline class
+  
+  Input
+  =====
+  file -- load data from this file assuming form of
+          /my/directory/filename.extension
+  """
+  
+  # Get file name and extension
+  types = ['.txt', '.h5', '.hdf5']
+  filename, file_extension = os.path.splitext(file)
+  assert file_extension in types, "File type must be have extension txt, h5, or hdf5."
+  
+  # HDF5 format
+  if file_extension == '.h5' or file_extension == '.hdf5':
     try:
       fp = h5py.File(file, 'r')
       isopen = True
     except:
       raise Exception, "Could not open file for reading."
     if isopen:
-      self._deg = fp['deg'][()]
-      self.tol = fp['tol'][()]
-      self.knots = fp['knots'][:]
-      self._data = fp['data'][:]
-      self.errors = fp['errors'][:]
+      deg = fp['deg'][()]
+      knots = fp['knots'][:]
+      data = fp['data'][:]
       fp.close()
-      self._spline = UnivariateSpline(self.knots, self._data, k=self._deg, s=0)
-      self._made = True
+      return UnivariateSpline(knots, data, k=deg, s=0)
   
-  def write(self, file):
-    """Write spline interpolant data to HDF5 file format"""
-    # TODO: Include text and/or binary formats
+  # Text format
+  if file_extension == '.txt':
     try:
-      fp = h5py.File(file, 'w')
+      fp_deg = open(file+'/deg.txt', 'r')
+      fp_x = open(file+'/x.txt', 'r')
+      fp_y = open(file+'/y.txt', 'r')
       isopen = True
     except:
-      raise Exception, "Could not open file for writing."
+      raise IOError, "Could not open file(s) for reading."
+    
     if isopen:
-      fp.create_dataset('deg', data=self._deg, dtype='int')
-      fp.create_dataset('tol', data=self.tol, dtype='double')
-      fp.create_dataset('knots', data=self.knots, dtype='double', compression='gzip', shuffle=True)
-      fp.create_dataset('data', data=self._data, dtype='double', compression='gzip', shuffle=True)
-      fp.create_dataset('errors', data=self.errors, dtype='double', compression='gzip', shuffle=True)
-      fp.close()
-    
+      deg = int(fp_deg.read())
+      fp_deg.close()
+      
+      knots = []
+      for line in fp_x:
+        knots.append( float(line) )
+      knots = np.array(knots)
+      fp_x.close()
+      
+      data = []
+      for line in fp_y:
+        data.append( float(line) )
+      data = np.array(data)
+      fp_y.close()
+      
+      return UnivariateSpline(knots, data, k=deg, s=0)
 
-def readSpline(self, file):
-  """Load spline interpolant data from HDF5 file format 
-  without having to instantiate ReducedOrderSpline class"""
-  # TODO: Include text and/or binary formats
-  try:
-    fp = h5py.File(file, 'r')
-    isopen = True
-  except:
-    raise Exception, "Could not open file for reading."
-  if isopen:
-    deg = fp['deg'][()]
-    knots = fp['knots'][:]
-    data = fp['data'][:]
-    fp.close()
-    return UnivariateSpline(knots, data, k=deg, s=0)
-    
 
 #################################
 # Functions for parallelization #
+# (see uncQuant.py)             #
 #################################
 
 def _seed(x, deg=5, seeds=None):
@@ -301,7 +451,7 @@ def _make_patch(x, x_grid, dim):
   
   # Indices of the patch 
   ipatch = np.arange(ix-a, ix+b)
-  return ipatch, ix, get_arg(ipatch, ix)
+  return ipatch, ix, _get_arg(ipatch, ix)
 
 def _check_patch(i, dileft, diright, dim):
   """Check if i is too close to interval endpoints and adjust if so."""
