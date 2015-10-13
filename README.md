@@ -28,5 +28,5 @@ See the accompanying IPython notebook (romSpline_example.ipynb) for a simple tut
 
 #### Author information ####
 Copyright (C) 2015 Chad Galley (*crgalley@tapir.caltech.edu*, *crgalley@gmail.com*). 
-Released under the MIT license.
+Released under the MIT/X Consortium license.
 Comments and requests welcome.
