@@ -365,7 +365,7 @@ def _seed(x, deg=5, seeds=None):
     indices = seeds
   errors = []
   
-  return indices, errors
+  return np.array(indices, dtype='int'), errors
 
 def _greedy(x, y, tol=1e-6, rel=False, deg=5, verbose=False, seeds=None):
   """Greedy algorithm for building a reduced-order spline"""
