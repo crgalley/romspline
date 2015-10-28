@@ -27,6 +27,6 @@ romSpline requires NumPy, SciPy, and H5py, which come with most Python distribut
 See the accompanying IPython notebook (romSpline_example.ipynb) for a simple tutorial on using the code.
 
 #### Author information ####
-Copyright (C) 2015 Chad Galley (*crgalley _at_ tapir.caltech.edu*). 
+Copyright (C) 2015 Chad Galley (*crgalley "at" tapir.caltech.edu*). 
 Released under the MIT/X Consortium license.
 Comments and requests welcome.
