@@ -154,74 +154,94 @@ class ReducedOrderSpline(object):
     print "Reduced-order spline meets tolerance:", np.all(np.abs(errors) <= self.tol)
     # TODO: Add plot of training data errors?
     return errors
-    
+  
   def write(self, file):
     """
-    Write spline interpolant data to HDF5 or text format
+    Write spline interpolant data in HDF5 or text format
     
     Input
     =====
-    file -- write data to this file assuming form of
-            /my/directory/filename.extension
+    file -- write data to this file 
+    
+    Comments
+    ========
+    Data written to file includes:
+      
+      deg    -- degree of spline polynomial interpolants
+      tol    -- greedy algorithm threshold tolerance
+      knots  -- reduced data samples (i.e., x values)
+      points -- reduced data points (i.e., y values)
+      errors -- L-infinity norm of differences between 
+                reduced order spline and full data set
+    
+    Input file can be an HDF5 file or group descriptor. Also,
+    file can be a string and is expected to be in the form of
+      
+      /my/directory/filename.extension
+    
+    Currently, HDF5 and text formats are supported. If text 
+    format, a directory is created with text files containing 
+    the reduced order spline data.
     """
     
-    # Get file name and extension
-    types = ['.txt', '.h5', '.hdf5']
-    filename, file_extension = os.path.splitext(file)
-    assert file_extension in types, "File type must be have extension txt, h5, or hdf5."
+    # If file is an HDF5 file or group descriptor...
+    if file.__class__ in [h5py._hl.files.File, h5py._hl.group.Group]:
+      self._write(file)
     
-    # HDF5 format
-    if file_extension == '.h5' or file_extension == '.hdf5':
-      try:
-        fp = h5py.File(file, 'w')
-        isopen = True
-      except:
-        raise Exception, "Could not open file for writing."
-      if isopen:
-        fp.create_dataset('deg', data=self._deg, dtype='int')
-        fp.create_dataset('tol', data=self.tol, dtype='double')
-        fp.create_dataset('knots', data=self.knots, dtype='double', compression='gzip', shuffle=True)
-        fp.create_dataset('data', data=self._data, dtype='double', compression='gzip', shuffle=True)
-        fp.create_dataset('errors', data=self.errors, dtype='double', compression='gzip', shuffle=True)
+    # If file is a file name...
+    elif type(file) is str:
+      # Get file name and extension
+      types = ['.txt', '.h5', '.hdf5']
+      filename, file_extension = os.path.splitext(file)
+      assert file_extension in types, "File type must have extension txt, h5, or hdf5."
+      
+      # HDF5 format
+      if file_extension == '.h5' or file_extension == '.hdf5':
+        try:
+          fp = h5py.File(file, 'w')
+          isopen = True
+        except:
+          raise Exception, "Could not open file for writing."
+        if isopen:
+          self._write(fp)
+          fp.close()
+      
+      # Text format
+      if file_extension == '.txt':
+        # Make directory with given filename
+        if not os.path.exists(file):
+            os.makedirs(file)
+        
+        # Write polynomial degree of reduced-order spline
+        fp = open(file+'/deg.txt', 'w')
+        fp.write(str(self._deg))
         fp.close()
-    
-    # Text format
-    if file_extension == '.txt':
-      # Make directory with given filename
-      if not os.path.exists(file):
-          os.makedirs(file)
-      
-      # Write polynomial degree of reduced-order spline
-      fp = open(file+'/deg.txt', 'w')
-      fp.write(str(self._deg))
-      fp.close()
-      
-      # Write greedy algorithm tolerance
-      fp = open(file+'/tol.txt', 'w')
-      fp.write(str(self.tol))
-      fp.close()
-      
-      # Write nearly optimal subset of x data (i.e., "knots")
-      fp = open(file+'/x.txt', 'w')
-      for xx in self.knots:
-        fp.write(str(xx)+'\n')
-      fp.close()
-      
-      # Write nearly optimal subset of y data
-      fp = open(file+'/y.txt', 'w')
-      for yy in self._data:
-        fp.write(str(yy)+'\n')
-      fp.close()
-      
-      # Write L-infinity spline errors from greedy algorithm
-      fp = open(file+'/errors.txt', 'w')
-      for ee in self.errors:
-        fp.write(str(ee)+'\n')
-      fp.close()
+        
+        # Write greedy algorithm tolerance
+        fp = open(file+'/tol.txt', 'w')
+        fp.write(str(self.tol))
+        fp.close()
+        
+        # Write nearly optimal subset of x data (i.e., "knots")
+        fp = open(file+'/x.txt', 'w')
+        for xx in self.knots:
+          fp.write(str(xx)+'\n')
+        fp.close()
+        
+        # Write nearly optimal subset of y data
+        fp = open(file+'/y.txt', 'w')
+        for yy in self._data:
+          fp.write(str(yy)+'\n')
+        fp.close()
+        
+        # Write L-infinity spline errors from greedy algorithm
+        fp = open(file+'/errors.txt', 'w')
+        for ee in self.errors:
+          fp.write(str(ee)+'\n')
+        fp.close()
   
   def _write(self, descriptor):
-    # TODO: Improve checking for descriptor...
-    # Write reduced order spline data to group
+    """Write reduced order spline data to HDF5 file given a file or group descriptor"""
     if descriptor.__class__ in [h5py._hl.files.File, h5py._hl.group.Group]:
       descriptor.create_dataset('deg', data=self._deg, dtype='int')
       descriptor.create_dataset('tol', data=self.tol, dtype='double')
