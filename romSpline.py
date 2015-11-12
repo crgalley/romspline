@@ -219,6 +219,18 @@ class ReducedOrderSpline(object):
         fp.write(str(ee)+'\n')
       fp.close()
   
+  def _write(self, descriptor):
+    # TODO: Improve checking for descriptor...
+    # Write reduced order spline data to group
+    if descriptor.__class__ in [h5py._hl.files.File, h5py._hl.group.Group]:
+      descriptor.create_dataset('deg', data=self._deg, dtype='int')
+      descriptor.create_dataset('tol', data=self.tol, dtype='double')
+      descriptor.create_dataset('knots', data=self.knots, dtype='double', compression='gzip', shuffle=True)
+      descriptor.create_dataset('data', data=self._data, dtype='double', compression='gzip', shuffle=True)
+      descriptor.create_dataset('errors', data=self.errors, dtype='double', compression='gzip', shuffle=True)
+    else:
+      raise Exception, "Descriptor not recognized."
+    
   def read(self, file):
     """
     Load spline interpolant data from HDF5 or text format
