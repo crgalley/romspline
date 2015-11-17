@@ -324,7 +324,7 @@ class ReducedOrderSpline(object):
         self._made = True
         
 
-def readSpline(file):
+def readSpline(file, group=None):
   """
   Load spline interpolant data from HDF5 or text format 
   without having to instantiate ReducedOrderSpline class
@@ -348,9 +348,10 @@ def readSpline(file):
     except:
       raise Exception, "Could not open file for reading."
     if isopen:
-      deg = fp['deg'][()]
-      knots = fp['knots'][:]
-      data = fp['data'][:]
+      gp = fp[group] if group else fp
+      deg = gp['deg'][()]
+      knots = gp['knots'][:]
+      data = gp['data'][:]
       fp.close()
       return UnivariateSpline(knots, data, k=deg, s=0)
   
