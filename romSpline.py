@@ -78,8 +78,10 @@ class ReducedOrderSpline(object):
       self.indices = np.sort(np.hstack([[0, len(x)-1], f(self._deg-1, len(x))]))
     else:
       self.indices = seeds
-    self._indices = self.indices[:]  # Keep track of unsorted indices
     self.errors = []
+    
+    # Keep track of unsorted indices selected by greedy algorithm
+    self.args = self.indices[:]
   
   def greedy(self, x, y, tol=1e-6, rel=False, deg=5, verbose=False, seeds=None):
     """
@@ -105,8 +107,10 @@ class ReducedOrderSpline(object):
     -----------------
     errors      -- L-infinity errors of successive spline interpolants 
                    produced by greedy algorithm until tol is reached
-    knots       -- Nearly optimal data for spline interpolant of given degree
-    indices     -- Array indices of knots
+    X           -- Nearly optimal data samples for spline interpolant of given order
+    Y           -- Nearly optimal data values for spline interpolant of given order
+    indices     -- Sorted array indices of greedy-selected data
+    args        -- Unsorted array indices of greedy-selected data
     size        -- Number of points retained for reduced-order spline
     compression -- Ratio of original data length to size
     
@@ -131,11 +135,13 @@ class ReducedOrderSpline(object):
     _seed(x, deg=self._deg, seeds=seeds)
       
     # Greedy algorithm
-    self._spline, self.knots, self.indices, self.errors, self.compression, self.tol = _greedy(x, y, tol=self._tol, rel=self._rel, deg=self._deg, verbose=verbose, seeds=seeds)
+    self._spline, self.indices, self.args, self.errors, self.tol = _greedy(x, y, tol=self._tol, rel=self._rel, deg=self._deg, verbose=verbose, seeds=seeds)
     
     # Define some attributes for spline evaluation
-    self._data = y[self.indices]
+    self.X = x[self.indices]
+    self.Y = y[self.indices]
     self.size = len(self.indices)
+    self.compression = float(len(y))/self.size
     self._made = True
     
   def __call__(self, x, dx=0):
@@ -169,8 +175,8 @@ class ReducedOrderSpline(object):
       
       deg    -- degree of spline polynomial interpolants
       tol    -- greedy algorithm threshold tolerance
-      knots  -- reduced data samples (i.e., x values)
-      points -- reduced data points (i.e., y values)
+      X      -- reduced data samples
+      Y      -- reduced data values
       errors -- L-infinity norm of differences between 
                 reduced order spline and full data set
     
@@ -223,14 +229,14 @@ class ReducedOrderSpline(object):
         fp.close()
         
         # Write nearly optimal subset of x data (i.e., "knots")
-        fp = open(file+'/x.txt', 'w')
-        for xx in self.knots:
+        fp = open(file+'/X.txt', 'w')
+        for xx in self.X:
           fp.write(str(xx)+'\n')
         fp.close()
         
         # Write nearly optimal subset of y data
-        fp = open(file+'/y.txt', 'w')
-        for yy in self._data:
+        fp = open(file+'/Y.txt', 'w')
+        for yy in self.Y:
           fp.write(str(yy)+'\n')
         fp.close()
         
@@ -245,84 +251,27 @@ class ReducedOrderSpline(object):
     if descriptor.__class__ in [h5py._hl.files.File, h5py._hl.group.Group]:
       descriptor.create_dataset('deg', data=self._deg, dtype='int')
       descriptor.create_dataset('tol', data=self.tol, dtype='double')
-      descriptor.create_dataset('knots', data=self.knots, dtype='double', compression='gzip', shuffle=True)
-      descriptor.create_dataset('data', data=self._data, dtype='double', compression='gzip', shuffle=True)
+      descriptor.create_dataset('X', data=self.X, dtype='double', compression='gzip', shuffle=True)
+      descriptor.create_dataset('Y', data=self.Y, dtype='double', compression='gzip', shuffle=True)
       descriptor.create_dataset('errors', data=self.errors, dtype='double', compression='gzip', shuffle=True)
     else:
       raise Exception, "Descriptor not recognized."
     
-  def read(self, file):
+  def read(self, file, group=None):
     """
     Load spline interpolant data from HDF5 or text format
-    
+
     Input
     =====
     file -- load data from this file assuming form of
             /my/directory/filename.extension
+    
+    Valid extensions are 'h5', 'hdf5', and 'txt'.
     """
+    out = readSpline(file, group=group)
+    self._spline, self.X, self.Y, self._deg, self.errors, self.tol = out
+    self._made = True
 
-    # Get file name and extension
-    types = ['.txt', '.h5', '.hdf5']
-    filename, file_extension = os.path.splitext(file)
-    assert file_extension in types, "File type must be have extension txt, h5, or hdf5."
-    
-    # HDF5 format
-    if file_extension == '.h5' or file_extension == '.hdf5':
-      try:
-        fp = h5py.File(file, 'r')
-        isopen = True
-      except:
-        raise Exception, "Could not open file for reading."
-      if isopen:
-        self._deg = fp['deg'][()]
-        self.tol = fp['tol'][()]
-        self.knots = fp['knots'][:]
-        self._data = fp['data'][:]
-        self.errors = fp['errors'][:]
-        fp.close()
-        self._spline = UnivariateSpline(self.knots, self._data, k=self._deg, s=0)
-        self._made = True
-    
-    # Text format
-    if file_extension == '.txt':
-      try:
-        fp_deg = open(file+'/deg.txt', 'r')
-        fp_tol = open(file+'/tol.txt', 'r')
-        fp_x = open(file+'/x.txt', 'r')
-        fp_y = open(file+'/y.txt', 'r')
-        fp_errs = open(file+'/errors.txt', 'r')
-        isopen = True
-      except:
-        raise IOError, "Could not open file(s) for reading."
-      
-      if isopen:
-        self._deg = int(fp_deg.read())
-        fp_deg.close()
-        
-        self.tol = float(fp_tol.read())
-        fp_tol.close()
-        
-        self.knots = []
-        for line in fp_x:
-          self.knots.append( float(line) )
-        self.knots = np.array(self.knots)
-        fp_x.close()
-        
-        self._data = []
-        for line in fp_y:
-          self._data.append( float(line) )
-        self._data = np.array(self._data)
-        fp_y.close()
-        
-        self.errors = []
-        for line in fp_errs:
-          self.errors.append( float(line) )
-        self.errors = np.array(self.errors)
-        fp_errs.close()
-        
-        self._spline = UnivariateSpline(self.knots, self._data, k=self._deg, s=0)
-        self._made = True
-        
 
 def readSpline(file, group=None):
   """
@@ -333,6 +282,8 @@ def readSpline(file, group=None):
   =====
   file -- load data from this file assuming form of
           /my/directory/filename.extension
+  
+  Valid extensions are 'h5', 'hdf5', and 'txt'.
   """
   
   # Get file name and extension
@@ -350,17 +301,21 @@ def readSpline(file, group=None):
     if isopen:
       gp = fp[group] if group else fp
       deg = gp['deg'][()]
-      knots = gp['knots'][:]
-      data = gp['data'][:]
+      tol = gp['tol'][()]
+      X = gp['X'][:]
+      Y = gp['Y'][:]
+      errors = gp['errors'][:]
       fp.close()
-      return UnivariateSpline(knots, data, k=deg, s=0)
+      _made = True
   
   # Text format
   if file_extension == '.txt':
     try:
       fp_deg = open(file+'/deg.txt', 'r')
-      fp_x = open(file+'/x.txt', 'r')
-      fp_y = open(file+'/y.txt', 'r')
+      fp_tol = open(file+'/tol.txt', 'r')
+      fp_X = open(file+'/X.txt', 'r')
+      fp_Y = open(file+'/Y.txt', 'r')
+      fp_errs = open(file+'/errors.txt', 'r')
       isopen = True
     except:
       raise IOError, "Could not open file(s) for reading."
@@ -369,20 +324,75 @@ def readSpline(file, group=None):
       deg = int(fp_deg.read())
       fp_deg.close()
       
-      knots = []
-      for line in fp_x:
-        knots.append( float(line) )
-      knots = np.array(knots)
-      fp_x.close()
+      tol = int(fp_tol.read())
+      fp_tol.close()
       
-      data = []
-      for line in fp_y:
-        data.append( float(line) )
-      data = np.array(data)
-      fp_y.close()
+      X = []
+      for line in fp_X:
+        X.append( float(line) )
+      X = np.array(X)
+      fp_X.close()
       
-      return UnivariateSpline(knots, data, k=deg, s=0)
+      Y = []
+      for line in fp_Y:
+        Y.append( float(line) )
+      Y = np.array(Y)
+      fp_Y.close()
+      
+      errors = []
+      for line in fp_errs:
+        errors.append( float(line) )
+      errors = np.array(errors)
+      fp_errs.close()
+      
+      _made = True
+  
+  if _made:
+    spline = UnivariateSpline(X, Y, k=deg, s=0)
+    return spline, X, Y, deg, errors, tol
+  else:
+    raise Exception, "Reduced-order spline interpolant could not be constructed from file."
 
+
+class _TestData(object):
+  """
+  Generate the test data used as an example for demonstrating 
+  the construction and properties of a reduced-order spline
+  interpolant.  
+  """
+  
+  def __init__(self, noise=None, uv=None):
+    # Generate test data
+    self.x = np.linspace(-1, 1, 4001)
+    self.y = self.f(self.x, noise=noise, uv=uv)
+  
+  def f(self, x, noise=None, uv=None):
+    """Function to sample for reduced-order spline example"""
+    
+    # Validate inputs
+    assert None in [noise, uv], "One or both of `noise` and `uv` must be None."
+    x = np.asarray(x)
+    
+    # Return smooth function values
+    smooth = 100.*( (x+1.)*np.sin(5.*(x-0.2)**2) + np.exp(-(x-0.5)**2/2./0.01)*np.sin(100*x) )
+    if noise is None and uv is None:
+      return smooth
+    
+    # Return smooth function values with high-frequency (UV) features
+    elif uv is not None:
+      assert type(uv) in [float, int], "Expecting integer or float type."
+      return smooth + uv*self.uv(x)
+    
+    # Return smooth function values with stochastic noise
+    elif noise is not None:
+      assert type(noise) in [float, int], "Expecting integer or float type."
+      return smooth + noise*np.random.randn(len(x))
+  
+  def uv(self, x, width=20):
+      X = x[width] - x[0]
+      return np.sin(len(x)/X * x)
+  
+  
 
 #################################
 # Functions for parallelization #
@@ -415,7 +425,7 @@ def _greedy(x, y, tol=1e-6, rel=False, deg=5, verbose=False, seeds=None):
   
   # Seed greedy algorithm
   indices, errors = _seed(x, deg=deg, seeds=seeds)
-  _indices = indices[:]  # Keep track of unsorted indices
+  args = indices[:]  # Keep track of unsorted indices
   
   # Greedy algorithm
   flag, ctr = 0, len(indices)+1
@@ -431,7 +441,7 @@ def _greedy(x, y, tol=1e-6, rel=False, deg=5, verbose=False, seeds=None):
     
     # Update arrays with "worst knot"
     errors.append( errs[imax] )
-    _indices = np.hstack([_indices, imax])
+    args = np.hstack([args, imax])
     indices = np.sort(np.hstack([indices, imax]))  # Knots must be sorted
     
     # Print to screen, if requested
@@ -441,19 +451,16 @@ def _greedy(x, y, tol=1e-6, rel=False, deg=5, verbose=False, seeds=None):
     # Check if greedy error is below tolerance and exit if so
     if errors[-1] < _tol:
       flag = 1
-      _indices = _indices[:-1]
-      indices = np.sort(_indices)
+      args = args[:-1]
+      indices = np.sort(args)
       errors = np.array(errors[:-1])
     
     ctr += 1
   
-  # Define some attributes for spline evaluation
+  # Construct the spline from the reduced data
   spline = UnivariateSpline(x[indices], y[indices], k=deg, s=0)
-  knots = x[indices]
-  size = len(indices)
-  compression = float(len(y))/size
   
-  return spline, knots, indices, errors, compression, _tol
+  return spline, indices, args, errors, _tol
 
 
 ###################################
