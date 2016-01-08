@@ -161,13 +161,15 @@ class ReducedOrderSpline(object):
     # TODO: Add plot of training data errors?
     return errors
   
-  def write(self, file):
+  def write(self, file, slim=False):
     """
     Write spline interpolant data in HDF5 or text format
     
     Input
     =====
     file -- write data to this file 
+    slim -- export minimal data to this file (i.e., exclude writing errors array)
+            (default False)
     
     Comments
     ========
@@ -192,7 +194,7 @@ class ReducedOrderSpline(object):
     
     # If file is an HDF5 file or group descriptor...
     if file.__class__ in [h5py._hl.files.File, h5py._hl.group.Group]:
-      self._write(file)
+      self._write(file, slim=slim)
     
     # If file is a file name...
     elif type(file) is str:
@@ -209,7 +211,7 @@ class ReducedOrderSpline(object):
         except:
           raise Exception, "Could not open file for writing."
         if isopen:
-          self._write(fp)
+          self._write(fp, slim=slim)
           fp.close()
       
       # Text format
@@ -241,19 +243,21 @@ class ReducedOrderSpline(object):
         fp.close()
         
         # Write L-infinity spline errors from greedy algorithm
-        fp = open(file+'/errors.txt', 'w')
-        for ee in self.errors:
-          fp.write(str(ee)+'\n')
-        fp.close()
+        if not slim:
+          fp = open(file+'/errors.txt', 'w')
+          for ee in self.errors:
+            fp.write(str(ee)+'\n')
+          fp.close()
   
-  def _write(self, descriptor):
+  def _write(self, descriptor, slim=False):
     """Write reduced order spline data to HDF5 file given a file or group descriptor"""
     if descriptor.__class__ in [h5py._hl.files.File, h5py._hl.group.Group]:
       descriptor.create_dataset('deg', data=self._deg, dtype='int')
       descriptor.create_dataset('tol', data=self.tol, dtype='double')
       descriptor.create_dataset('X', data=self.X, dtype='double', compression='gzip', shuffle=True)
       descriptor.create_dataset('Y', data=self.Y, dtype='double', compression='gzip', shuffle=True)
-      descriptor.create_dataset('errors', data=self.errors, dtype='double', compression='gzip', shuffle=True)
+      if not slim:
+        descriptor.create_dataset('errors', data=self.errors, dtype='double', compression='gzip', shuffle=True)
     else:
       raise Exception, "Descriptor not recognized."
     
@@ -304,7 +308,10 @@ def readSpline(file, group=None):
       tol = gp['tol'][()]
       X = gp['X'][:]
       Y = gp['Y'][:]
-      errors = gp['errors'][:]
+      if hasattr(gp, 'errors'):
+        errors = gp['errors'][:]
+      else:
+        errors = []
       fp.close()
       _made = True
   
@@ -315,7 +322,11 @@ def readSpline(file, group=None):
       fp_tol = open(file+'/tol.txt', 'r')
       fp_X = open(file+'/X.txt', 'r')
       fp_Y = open(file+'/Y.txt', 'r')
-      fp_errs = open(file+'/errors.txt', 'r')
+      try:
+        fp_errs = open(file+'/errors.txt', 'r')
+        errs_isopen = True
+      except:
+        errs_isopen = False
       isopen = True
     except:
       raise IOError, "Could not open file(s) for reading."
@@ -340,10 +351,11 @@ def readSpline(file, group=None):
       fp_Y.close()
       
       errors = []
-      for line in fp_errs:
-        errors.append( float(line) )
-      errors = np.array(errors)
-      fp_errs.close()
+      if errs_isopen:
+        for line in fp_errs:
+          errors.append( float(line) )
+        errors = np.array(errors)
+        fp_errs.close()
       
       _made = True
   
