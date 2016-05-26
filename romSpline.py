@@ -272,8 +272,14 @@ class ReducedOrderSpline(object):
     
     Valid extensions are 'h5', 'hdf5', and 'txt'.
     """
-    out = readSpline(file, group=group)
-    self._spline, self.X, self.Y, self._deg, self.errors, self.tol = out
+    ans = readSpline(file, group=group)
+    #self._spline, self.X, self.Y, self._deg, self.errors, self.tol = out
+    self._spline = ans._spline
+    self.X = ans.X
+    self.Y = ans.Y
+    self._deg = ans._deg
+    self.errors = ans.errors
+    self.tol = ans.tol
     self._made = True
 
 
@@ -287,7 +293,12 @@ def readSpline(file, group=None):
   file -- load data from this file assuming form of
           /my/directory/filename.extension
   
-  Valid extensions are 'h5', 'hdf5', and 'txt'.
+  Output
+  ======
+  spline -- object that has the attributes and methods
+            of ReducedOrderSpline class
+  
+  Valid file extensions are 'h5', 'hdf5', and 'txt'.
   """
   
   # Get file name and extension
@@ -308,7 +319,7 @@ def readSpline(file, group=None):
       tol = gp['tol'][()]
       X = gp['X'][:]
       Y = gp['Y'][:]
-      if hasattr(gp, 'errors'):
+      if hasattr(gp, 'errors') or 'errors' in gp.keys():
         errors = gp['errors'][:]
       else:
         errors = []
@@ -335,7 +346,7 @@ def readSpline(file, group=None):
       deg = int(fp_deg.read())
       fp_deg.close()
       
-      tol = int(fp_tol.read())
+      tol = float(fp_tol.read())
       fp_tol.close()
       
       X = []
@@ -360,8 +371,15 @@ def readSpline(file, group=None):
       _made = True
   
   if _made:
-    spline = UnivariateSpline(X, Y, k=deg, s=0)
-    return spline, X, Y, deg, errors, tol
+    spline = ReducedOrderSpline()
+    spline._spline = UnivariateSpline(X, Y, k=deg, s=0)
+    spline.X = X
+    spline.Y = Y
+    spline._deg = deg
+    spline.errors = errors
+    spline.tol = tol
+    spline._made = _made
+    return spline
   else:
     raise Exception, "Reduced-order spline interpolant could not be constructed from file."
 
