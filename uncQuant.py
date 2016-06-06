@@ -1,12 +1,16 @@
 import numpy as np, matplotlib.pyplot as plt
 from scipy.stats.mstats import mquantiles
 
-# For parallelization
-# TODO: Use try-except pairs for importing these
-from concurrent.futures import ProcessPoolExecutor, wait, as_completed
-from multiprocessing import cpu_count
+# Modules for parallelization
+try:
+  from concurrent.futures import ProcessPoolExecutor, wait, as_completed
+  from multiprocessing import cpu_count
+  _parallel = True
+except:
+  print "Cannot import from concurrent.futures and/or multiprocessing modules."
+  _parallel = False
 
-# For building reduced-order splines
+# Module for building reduced-order splines
 import greedySpline
 
 
