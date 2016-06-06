@@ -59,56 +59,130 @@ from uncQuant import *
 # associated IPython notebooks #
 ################################
 
-class _TestData(object):
-  """
-  Generate the test data used as in example IPython notebooks 
-  for demonstrating the construction, properties, and errors 
-  of a reduced-order spline interpolant.  
-  """
+class TestData(object):
   
-  def __init__(self, samples=4001, noise=None, uv=None):
+  def __init__(self, num=4001, noise=0., uv=0.):
+    """
+    Generate the test data used as in example IPython notebooks 
+    for demonstrating the construction, properties, and errors 
+    of a reduced-order spline interpolant.
+    
+    Input
+    -----
+      num   -- number of samples to evaluate the function
+               in domain [-1,1]
+      noise -- amplitude of stochastic fluctuations added
+               to smooth function values
+               (default is 0.)
+      uv    -- amplitude of high-frequency (i.e., ultra-violet)
+               features added to smooth function values
+               (default is 0.)
+    
+    Attributes
+    ----------
+      x -- samples
+      y -- values of sampled function
+    
+    """
+    
     # Generate test data
-    self.x = np.linspace(-1, 1, samples)
+    self.x = np.linspace(-1, 1, num)
     self.y = self.f(self.x, noise=noise, uv=uv)
   
-  def f(self, x, noise=None, uv=None):
-    """Function to sample for reduced-order spline example"""
+  
+  def f(self, x, noise=0., uv=0.):
+    """Function to sample for reduced-order spline example
+    
+    Inputs
+    ------
+      x     -- values to sample the (smooth) function
+      noise -- amplitude of stochastic fluctuations added
+               to smooth function values
+               (default is 0.)
+      uv    -- amplitude of high-frequency (i.e., ultra-violet)
+               features added to smooth function values
+               (default is 0.)
+    
+    Output
+    ------
+      sampled function values
+    
+    Comments
+    --------
+    The function being evaluated is
+    
+      f(x) = 100.*( (1.+x) * sin(5.*(x-0.2)**2) 
+                    + exp(-(x-0.5)**2/2./0.01) * sin(100*x) 
+                  )
+    """
     
     # Validate inputs
-    assert None in [noise, uv], "One or both of `noise` and `uv` must be None."
+    assert 0. in [noise, uv], "One or both of `noise` and `uv` must be 0."
     x = np.asarray(x)
     
     # Return smooth function values
     smooth = 100.*( (x+1.)*np.sin(5.*(x-0.2)**2) + np.exp(-(x-0.5)**2/2./0.01)*np.sin(100*x) )
-    if noise is None and uv is None:
+    if noise == 0. and uv == 0.:
       ans = smooth
     
     # Return smooth function values with high-frequency (UV) features
-    elif uv is not None:
+    elif uv != 0.:
       assert type(uv) in [float, int], "Expecting integer or float type."
-      ans = smooth + uv*self.uv(x)
+      ans = smooth + float(uv)*self.uv(x)
     
     # Return smooth function values with stochastic noise
-    elif noise is not None:
+    elif noise != 0.:
       assert type(noise) in [float, int], "Expecting integer or float type."
-      ans = smooth + noise*np.random.randn(len(x))
+      ans = smooth + float(noise)*np.random.randn(len(x))
     
     return ans
   
+  
   def dfdx(self, x):
-      """Analytic derivative of f"""
-      x = np.asarray(x)
-      
-      a = 10.*(-0.2+x)*(1.+x)*np.cos(5.*(-0.2 + x)**2)
-      b = 100.*np.exp(-50.*(-0.5+x)**2)*np.cos(100.*x)
-      c = np.sin(5.*(-0.2+x)**2)
-      d = -100.*np.exp(-50.*(-0.5+x)**2)*(-0.5+x)*np.sin(100.*x)
-      
-      return 100.*(a+b+c+d)
+    """Analytic derivative of f
+    
+    Inputs
+    ------
+      x -- values to sample the derivative of 
+           the function f(x) (see self.f method)
+    
+    Outputs
+    -------
+      ans -- values of analytically calculated 
+             derivative of the function
+    
+    """
+    x = np.asarray(x)
+    
+    a = 10.*(-0.2+x)*(1.+x)*np.cos(5.*(-0.2 + x)**2)
+    b = 100.*np.exp(-50.*(-0.5+x)**2)*np.cos(100.*x)
+    c = np.sin(5.*(-0.2+x)**2)
+    d = -100.*np.exp(-50.*(-0.5+x)**2)*(-0.5+x)*np.sin(100.*x)
+    
+    ans = 100.*(a+b+c+d)
+    
+    return ans
+  
   
   def uv(self, x, width=20):
-      X = x[width] - x[0]
-      return np.sin(len(x)/X * x)
+    """Generate high-frequency oscillations
+    
+    Inputs
+    ------
+      x     -- values to sample the high-frequency
+               oscillations
+      width -- number of samples corresponding to
+               the period of the high-frequency
+               oscillations
+               (default is 20)
+    
+    Outputs
+    -------
+      array of high-frequency oscillating values
+    
+    """
+    X = x[width] - x[0]
+    return np.sin(len(x)/X * x)
 
 
 
@@ -120,6 +194,7 @@ class _TestData(object):
 def _get_arg(a, x):
   """Get index of array a that has the closest value to x"""
   return abs(a-x).argmin()
+
 
 def _make_patch(x, x_grid, dim):
   """Make patch with dim elements centered around x"""
@@ -142,6 +217,7 @@ def _make_patch(x, x_grid, dim):
   ipatch = np.arange(ix-a, ix+b)
   return ipatch, ix, _get_arg(ipatch, ix)
 
+
 def _check_patch(i, dileft, diright, dim):
   """Check if i is too close to interval endpoints and adjust if so."""
   if i <= dileft: 
@@ -151,6 +227,7 @@ def _check_patch(i, dileft, diright, dim):
   else:
     ans = i
   return ans
+
 
 def D(y, x, dx=1, order=4):
   """Deriviative(s) of y with respect to x using finite differencing"""
@@ -168,10 +245,12 @@ def D(y, x, dx=1, order=4):
   
   return ans
 
+
 def _FD_weights(nd, order, s, h):
   nd, order, s = int(nd), int(order), int(s)
   params = str((nd,order,s))
   return np.array(_weights[params])/h**nd
+
 
 _weights = {}
 
