@@ -4,8 +4,8 @@ previously generated data to make sure the code works correctly.
 """
 
 import h5py, numpy as np
-from __init__ import _TestData
-import greedySpline
+from __init__ import TestData
+import greedy
 
 
 
@@ -23,29 +23,29 @@ args = fp['args'][:]
 fp.close()
 
 # Generate test data
-test = _TestData()
+test = TestData()
 
 # Build reduced-order spline interpolant 
 # for the test data using default options.
-testSpline = greedySpline.ReducedOrderSpline(test.x, test.y, deg=deg, tol=tol)
+test_spline = greedy.ReducedOrderSpline(test.x, test.y, deg=deg, tol=tol)
 
 # Perform a few checks on the greedy algorithm
 print "Testing greedy algorithm:"
 
 print "  Comparing reduced data size...",
-if testSpline.size == len(X):
+if test_spline.size == len(X):
   print "Passed"
 else:
-  print "Failed [Size of reduced data ({}) does not equal {}]".format(testSpline.size, len(X))
+  print "Failed [Size of reduced data ({}) does not equal {}]".format(test_spline.size, len(X))
 
 print "  Comparing selected array indices...",
-if np.all([testSpline.args[ii] == args[ii] for ii in range(len(args))]):
+if np.all([test_spline.args[ii] == args[ii] for ii in range(len(args))]):
   print "Passed"
 else:
   print "Failed"
 
 print "  Comparing greedy errors...",
-if np.all([np.isclose(testSpline.errors[ii], errors[ii]) for ii in range(len(errors))]):
+if np.all([np.isclose(test_spline.errors[ii], errors[ii]) for ii in range(len(errors))]):
   print "Passed"
 else:
   print "Failed"
