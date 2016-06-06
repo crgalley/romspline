@@ -1,13 +1,11 @@
 """
 Test the reduced-order spline greedy algorithm outputs with
-previously generated data to make sure the code works correctly.
+previously generated data to make sure the code still works correctly.
 """
 
 import h5py, numpy as np
 from __init__ import TestData
 import greedy
-
-
 
 
 # Load the reference reduced-order spline data
@@ -25,9 +23,11 @@ fp.close()
 # Generate test data
 test = TestData()
 
-# Build reduced-order spline interpolant 
-# for the test data using default options.
+# Build reduced-order spline interpolant for the
+# test data using options found in regressionData.h5.
+print "Building reduced-order spline...",
 test_spline = greedy.ReducedOrderSpline(test.x, test.y, deg=deg, tol=tol)
+print "Done"
 
 # Perform a few checks on the greedy algorithm
 print "Testing greedy algorithm:"
