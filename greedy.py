@@ -1,6 +1,6 @@
-import numpy as np, h5py
-import os
+import numpy as np, h5py, os
 from scipy.interpolate import UnivariateSpline
+
 
 
 ########################
