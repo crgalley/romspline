@@ -225,20 +225,42 @@ class Convergence(object):
       print "No data to plot. Run make method."
   
   
-  def _plot_sizes(self, ax):
+  def _plot_sizes(self, ax, axes=None):
+    """Simple function that selects the plotting axes for 
+    displaying data from the plot_sizes method.
     
-    [ax.loglog(ll, self.splines[ll].size, 'o') for ll in self.levs]
+    Input
+    -----
+      ax   -- matplotlib plot/axis object
+      axes -- type of axes to plot
+              (default None)
+    
+    Output
+    ------
+      matplotlib plot/axis object
+    """
+    
+    if axes is None:
+      axes = 'semilogx'
+    if axes == 'semilogy':
+      [ax.semilogy(ll, self.splines[ll].size, 'o') for ll in self.levs]
+    elif axes == 'semilogx':
+      [ax.semilogx(ll, self.splines[ll].size, 'o') for ll in self.levs]
+    elif axes == 'loglog':
+      [ax.loglog(ll, self.splines[ll].size, 'o') for ll in self.levs]
+    elif axes == 'plot':
+      [ax.plot(ll, self.splines[ll].size, 'o') for ll in self.levs]
     
     return ax
   
   
-  def plot_sizes(self, ax=None, show=True, xlabel='Decimation factor', ylabel='Reduced data sizes'):
+  def plot_sizes(self, ax=None, show=True, axes=None, xlabel='Decimation factor', ylabel='Reduced data sizes'):
     if self._made:
       
       if ax is None:
         fig, ax = plt.subplots(nrows=1, ncols=1)
       
-      ax = self._plot_sizes(ax)
+      ax = self._plot_sizes(ax, axes=axes)
       ax.set_xlim(self.levs.min(), 1.1*self.levs.max())
       ax.set_xlabel(xlabel)
       ax.set_ylabel(ylabel)
