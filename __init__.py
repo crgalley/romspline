@@ -11,17 +11,19 @@ or compressing large data arrays to their essential components needed for
 reconstructing the original information. The degree of downsampling is 
 often significant (e.g., orders of magnitude) for relatively smooth data.
 
-Future versions of romSpline will include support for multi-dimensional data 
-and for quantifying the uncertainty of the output spline interpolant on
-data not used for training the underlying greedy algorithm.
+Future versions of romSpline may include support for multi-dimensional data 
+and additional ways for estimating the reduced-order spline interpolation error
+on data in the original set being compressed.
 
 See the accompanying IPython notebook (romSpline_example.ipynb) for a 
-tutorial on using the code.
+tutorial on using the code. See also errors_example.ipynb for a tutorial
+on using the interpolation error assessment and estimation features of the 
+romSpline.
 
 If you find this code useful for your publication work then please
 cite the code repository (www.bitbucket.org/chadgalley/romSpline)
 and the corresponding paper that discusses and characterizes the
-reduced-order spline method (to be available soon).
+reduced-order spline method (available soon).
 
 """
 
@@ -48,8 +50,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from greedy import *
-from errors import *
+from greedy import *  # For building reduced-order splines
+from errors import *  # For quantifying interpolation uncertainties/errors
 
 
 ################################
@@ -91,7 +93,7 @@ class TestData(object):
   
   
   def f(self, x, noise=0., uv=0.):
-    """Function to sample for reduced-order spline example
+    """Function to sample for reduced-order spline examples
     
     Inputs
     ------
@@ -117,23 +119,20 @@ class TestData(object):
     """
     
     # Validate inputs
-    assert 0. in [noise, uv], "One or both of `noise` and `uv` must be 0."
     x = np.asarray(x)
     
     # Return smooth function values
-    smooth = 100.*( (x+1.)*np.sin(5.*(x-0.2)**2) + np.exp(-(x-0.5)**2/2./0.01)*np.sin(100*x) )
-    if noise == 0. and uv == 0.:
-      ans = smooth
+    ans = 100.*( (x+1.)*np.sin(5.*(x-0.2)**2) + np.exp(-(x-0.5)**2/2./0.01)*np.sin(100*x) )
     
     # Return smooth function values with high-frequency (UV) features
-    elif uv != 0.:
+    if uv != 0.:
       assert type(uv) in [float, int], "Expecting integer or float type."
-      ans = smooth + float(uv)*self.uv(x)
+      ans += float(uv)*self.uv(x)
     
     # Return smooth function values with stochastic noise
-    elif noise != 0.:
+    if noise != 0.:
       assert type(noise) in [float, int], "Expecting integer or float type."
-      ans = smooth + float(noise)*np.random.randn(len(x))
+      ans += float(noise)*np.random.randn(len(x))
     
     return ans
   
