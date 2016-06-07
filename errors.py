@@ -10,8 +10,7 @@ except:
   print "Cannot import from concurrent.futures and/or multiprocessing modules."
   _parallel = False
 
-# Module for building reduced-order splines
-import greedy
+import greedy  # For building reduced-order splines
 
 
 ########################
@@ -35,7 +34,9 @@ def partitions(n, K):
 
 
 def random_partitions(n, K):
-  """Split array with n samples into K (nearly) equal partitions of non-overlapping random subsets"""
+  """Split array with n samples into K (nearly) equal 
+  partitions of non-overlapping random subsets
+  """
   assert n >= K, "Number of folds must not exceed number of samples."
   
   # Make array with unique random integers
@@ -57,13 +58,33 @@ def random_partitions(n, K):
 #########################
 
 class Convergence(object):
+  """A class for determining if the reduced-order spline greedy algorithm is
+  convergent. 
   
+  The original data set is decimated and reduced-order splines
+  are built for each decimation. Convergence is met if the size of the
+  reduced dataset is essentially unchanged for consecutive decimations.
+  """
   
   def __init__(self, spline=None, tol=1e-6, rel=False, deg=5):
+    """Create a Convergence object.
+    
+    Input
+    -----
+      spline -- a greedy.ReducedOrderSpline class object
+                (default is None)
+      tol    -- L-infinity error tolerance for reduced-order spline 
+                (default 1e-6)
+      rel    -- L-infinity error tolerance is relative to max abs of data?
+                (default False)
+      deg    -- degree of interpolating polynomials 
+                (default 5)
+    """
+    
+    # Initialize some variables
     self._tol = tol
     self._rel = rel
     self._deg = deg
-    
     self.splines = dict()
     self.errors = dict()
     self.compressions = dict()
@@ -72,15 +93,53 @@ class Convergence(object):
       self._spline = False
     else:
       self._spline = spline
+      # Add self._made = True?
     self._made = False
   
   
   def __call__(self, x, y, levs=None):
+    """Decimate the input data at the required levs and compute the 
+    resulting reduced-order spline interpolants.
+    
+    Input
+    -----
+      x    -- samples
+      y    -- data to be downsampled
+      levs -- decimation levels (levs) such that if levs=4 then 
+              every fourth entry is skipped for building the spline
+              (default None)
+    
+    Attributes
+    ----------
+      splines      -- reduced-order spline objects for each lev
+      errors       -- L-infinity spline errors for each lev as
+                      compared to the full input data
+      compressions -- compression factors of the reduced data
+                      for each lev
+    """
     return self.make(x, y, levs=levs)
   
   
   def make(self, x, y, levs=None):
+    """Decimate the input data at the required levs and compute the 
+    resulting reduced-order spline interpolants.
     
+    Input
+    -----
+      x    -- samples
+      y    -- data to be downsampled
+      levs -- decimation levels (levs) such that if levs=4 then 
+              every fourth entry is skipped for building the spline
+              (default None)
+    
+    Attributes
+    ----------
+      splines      -- reduced-order spline objects for each lev
+      errors       -- L-infinity spline errors for each lev as
+                      compared to the full input data
+      compressions -- compression factors of the reduced data
+                      for each lev
+    """
     if levs is None:
       self.levs = np.array([8, 4, 2])
     else:
@@ -88,13 +147,16 @@ class Convergence(object):
     if 1 not in self.levs:
       self.levs = np.hstack([self.levs, 1])
     
+    # Build reduced-order spline on full data (e.g., lev=1)
     if self._spline:
       self.splines[1] = self._spline
     else:
       self.splines[1] = greedy.ReducedOrderSpline(x, y, deg=self._deg, tol=self._tol, rel=self._rel)
     
+    # Build reduced-order splines for each requested decimation level
     for ll in self.levs:
       
+      # Build a reduced_order spline
       if ll != 1:
         x_lev = x[::ll]
         y_lev = y[::ll]
@@ -103,6 +165,8 @@ class Convergence(object):
           y_lev = np.hstack([y_lev, y[-1]])
             
         self.splines[ll] = greedy.ReducedOrderSpline(x_lev, y_lev, deg=self._deg, tol=self._tol, rel=self._rel)
+      
+      # Compute the compression factor and L-infinity absolute error for this lev
       self.errors[ll] = Linfty(self.splines[ll].eval(x), y)
       self.compressions[ll] = self.splines[ll].compression
     
@@ -110,8 +174,19 @@ class Convergence(object):
   
   
   def _plot_greedy_errors(self, ax, axes=None):
+    """Simple function that selects the plotting axes type
     
-    #plot = ax
+    Input
+    -----
+      ax   -- plot object
+      axes -- type of axes to plot
+              (default None)
+    
+    Output
+    ------
+      plot object
+    """
+    
     if axes is None:
       axes = 'semilogy'
     if axes == 'semilogy':
@@ -126,9 +201,28 @@ class Convergence(object):
     return ax
   
   
-  def plot_greedy_errors(self, ax=None, show=True, axes=None, xlabel='Size of reduced data', ylabel='Greedy errors'):
+  def plot_greedy_errors(self, ax=None, show=True, axes='semilogy', xlabel='Size of reduced data', ylabel='Greedy errors'):
+    """Plot the greedy errors versus size of the reduced data.
     
-    if self._made:
+    Input
+    -----
+      ax     -- matplotlib plot/axis object
+      show   -- display the plot?
+                (default True)
+      axes   -- axis scales for plotting
+                (default 'semilogy')
+      xlabel -- label of x-axis
+                (default 'Size of reduced data')
+      ylabel -- label of y-axis
+                (default 'Greedy errors')
+    
+    Output
+    ------
+      If show=True then the plot is displayed.
+      Otherwise, the matplotlib plot/axis object is output.
+    """
+    
+    if self._made:  # Check if spline data made
       if ax is None:
         fig, ax = plt.subplots(nrows=1, ncols=1)
       
@@ -136,9 +230,9 @@ class Convergence(object):
       ax.set_xlabel(xlabel)
       ax.set_ylabel(ylabel)
       
-      if show:
-        plt.show()
-      else:
+      if show:  # Display the plot
+        plt.show()  
+      else:     # Otherwise, return plot objects for editing the plot in the future
         if ax is None:
           return fig, ax
         else:
@@ -214,7 +308,20 @@ class Convergence(object):
 ######################################
 
 def _randomSeeds(x, y, tol=1e-6, rel=False, deg=5):
-  """Build reduced-order splines from a random set of seeds for greedy algorithm"""
+  """Build reduced-order splines from a random set of seeds for greedy algorithm.
+  See RandomSeeds for further details.
+  
+  Input
+  -----
+    x   -- samples
+    y   -- data to be downsampled
+    tol -- L-infinity error tolerance for reduced-order spline 
+           (default 1e-6)
+    rel -- L-infinity error tolerance is relative to max abs of data?
+           (default False)
+    deg -- degree of interpolating polynomials 
+           (default 5)
+  """
   # Seeds
   seeds = np.sort( np.random.choice(range(len(x)), deg+1, replace=False) )
   
@@ -226,19 +333,93 @@ def _randomSeeds(x, y, tol=1e-6, rel=False, deg=5):
 
 
 class RandomSeeds(object):
+  """A class for studying how the initial distribution of 
+  seed points effects the size of the reduced data set.
+  
+  The default distribution of seed points depends on the
+  degree (deg) of the spline polynomial used for interpolation.
+  In general, one needs deg+1 points to fit a polynomial
+  of degree deg. The default seed points include the first
+  and last points of the data and then deg-1 points that
+  are as equally spaced as possible.
+  
+  In this class, a set of deg+1 seed points are randomly
+  selected and a reduced-order spline is generated for
+  each such seed selection. The resulting sizes of the
+  reduced data are recorded.
+  """
   
   def __init__(self, tol=1e-6, rel=False, deg=5):
+    """Create a RandomSeeds object.
+    
+    Input
+    -----
+      tol -- L-infinity error tolerance for reduced-order spline 
+             (default 1e-6)
+      rel -- L-infinity error tolerance is relative to max abs of data?
+             (default False)
+      deg -- degree of interpolating polynomials 
+             (default 5)
+    """
     self._tol = tol
     self._rel = rel
     self._deg = deg
-    self._made = False
+    self._made = False  # Assume that random seeds study is not made yet
   
   
-  def __call__(self, x, y, Nseeds):
-    return self.make(x, y, Nseeds)
+  def __call__(self, x, y, Nseeds, parallel=True):
+    """Make reduced-order splines for Nseeds number of random sets of seed points.
+    
+    Input
+    -----
+      x        -- samples
+      y        -- data to be downsampled
+      Nseeds   -- number of random sets of seed points
+      parallel -- parallelize the computation for each random seed set?
+                  (default True)
+    
+    Attributes
+    ----------
+      errors -- greedy errors associated with each random set of seed points
+      sizes  -- reduced data sizes from each random set of seed points
+      seeds  -- the full set of random seed points
+      Xs     -- reduced data from each random set of seed points
+    
+    Comments
+    --------
+    The `parallel` option also accepts positive integers indicating the
+    number of processors that the user wants to use. 
+    
+    Parallelization uses some features from the concurrent.futures module.
+    """
+    return self.make(x, y, Nseeds, parallel=parallel)
   
   
   def make(self, x, y, Nseeds, parallel=True):
+    """Make reduced-order splines for Nseeds number of random sets of seed points.
+    
+    Input
+    -----
+      x        -- samples
+      y        -- data to be downsampled
+      Nseeds   -- number of random sets of seed points
+      parallel -- parallelize the computation for each random seed set?
+                  (default True)
+    
+    Attributes
+    ----------
+      errors -- greedy errors associated with each random set of seed points
+      sizes  -- reduced data sizes from each random set of seed points
+      seeds  -- the full set of random seed points
+      Xs     -- reduced data from each random set of seed points
+    
+    Comments
+    --------
+    The `parallel` option also accepts positive integers indicating the
+    number of processors that the user wants to use. 
+    
+    Parallelization uses some features from the concurrent.futures module.
+    """
     
     # Allocate some memory
     self.errors = np.zeros(Nseeds, dtype='double')
@@ -246,10 +427,10 @@ class RandomSeeds(object):
     self.seeds = np.zeros((Nseeds, self._deg+1), dtype='double')
     self.Xs = []
     
-    if parallel is False:
+    if (parallel is False) or (_parallel is False):
       for nn in range(Nseeds):
         self.errors[nn], self.sizes[nn], self.seeds[nn] = _randomSeeds(x, y, tol=self._tol, rel=self._rel, deg=self._deg)
-    else:
+    elif _parallel is True:
       # Determine the number of processes to run on
       if parallel is True:
         try:
@@ -262,6 +443,7 @@ class RandomSeeds(object):
       # Create a parallel process executor
       executor = ProcessPoolExecutor(max_workers=numprocs)
       
+      # Build reduced-order splines for many random sets of seed points
       output = []
       for nn in range(Nseeds):
         output.append(executor.submit(_randomSeeds, x, y, tol=self._tol, rel=self._rel, deg=self._deg))
@@ -274,7 +456,29 @@ class RandomSeeds(object):
     self._made = True
   
   
-  def plot_sizes(self, n=20, ax=None, show=True, xlabel='Size of reduced data'):
+  def plot_sizes(self, n=20, ax=None, show=True, xlabel='Size of reduced data', ylabel='Occurrence'):
+    """Plot a histogram of the reduced data sizes produced by building
+    reduced-order splines from random sets of seed points.
+    
+    Input
+    -----
+      n      -- number of histogram bins
+                (default 20)
+      ax     -- matplotlib plot/axis object
+                (default None)
+      show   -- display the plot?
+                (default True)
+      xlabel -- x-axis label 
+                (default 'Size of reduced data')
+      ylabel -- y-axis label
+                (default 'Occurrence')
+    
+    Output
+    ------
+      If show=True then the plot is displayed.
+      Otherwise, the matplotlib plot/axis object is output.
+    """
+    
     if self._made:
       
       if ax is None:
@@ -290,10 +494,11 @@ class RandomSeeds(object):
       ax.axvline(x=mean-std, color='k', linestyle='--', linewidth=1)
       
       ax.set_xlabel(xlabel)
+      ax.set_ylabel(ylabel)
       
-      if show:
+      if show:  # Display the plot
         plt.show()
-      else:
+      else:     # Otherwise, return plot objects for editing the plot in the future
         if ax is None:
           return fig, ax
         else:
@@ -345,9 +550,10 @@ class RandomSeeds(object):
 ###########################
 
 def _Kfold(x, y, K, i_fold, folds, tol=1e-6, rel=False, deg=5, seeds=None):
-  """K-fold cross validation on a given partition (fold)"""
+  """K-fold cross validation on a given partition"""
   
   # Assemble training data excluding the i_fold'th partition for validation
+  # TODO: These next few lines could be implemented more efficiently...
   folds = np.asarray(folds)
   complement = np.ones(len(folds), dtype='bool')
   complement[i_fold] = False
@@ -363,46 +569,109 @@ def _Kfold(x, y, K, i_fold, folds, tol=1e-6, rel=False, deg=5, seeds=None):
   
   # Compute L-infinity errors between trial and data in validation partition
   error, arg_error = Linfty(spline(x[fold]), y[fold], arg=True)
-  rel_error = error / np.abs(y[fold][arg_error])
+  if rel:
+    error /= np.max(np.abs(y))
   
-  return fold[arg_error], error, rel_error
+  return fold[arg_error], error
 
 
 class CrossValidation(object):
+  """A class for performing K-fold cross-validation studies to assess
+  the errors in reduced-order spline interpolation.
+  
+  A K-fold cross-validation study consists of randomly distributing
+  the original dataset into K partitions such that their union, when
+  sorted, is the original data. Select the first partition for validation
+  and build a reduced-order spline interpolant on the remaining K-1 
+  partitions. Compute the L-infinty error between the resulting trial
+  spline and the actual data in the validation partition. Repeat using
+  each of the K partitions as a validation set. This results in K
+  validation errors, one for each validation partition. The mean (median)
+  of these is the mean (median) validation error. K-fold cross-validation
+  is implemented in the `Kfold` method.
+  
+  This study can be repeated for different realizations of the random
+  distribution of the original data into the K partitions. Each draw is from
+  an independent and identical distribution so standard statistics applies
+  to the mean (median) validation errors computed for the ensemble of all
+  draws. Use the `MonteCarloKfold` method for this kind of study.
+  """
   
   def __init__(self, tol=1e-6, rel=False, deg=5):
+    """Create a CrossValidation object.
+    
+    Input
+    -----
+      tol -- L-infinity error tolerance for reduced-order spline 
+             (default 1e-6)
+      rel -- L-infinity error tolerance is relative to max abs of data?
+             (default False)
+      deg -- degree of interpolating polynomials 
+             (default 5)
+    """
     self._tol = tol
     self._rel = rel
     self._deg = deg
     self._made = False
   
   
-  def __call__(self, x, y, K=10, parallel=True):
-    return self.Kfold(x, y, K=K, parallel=parallel)
-  
-  
   def Kfold(self, x, y, K=10, parallel=True, seeds=None, random=True):
-    """K-fold cross-validation"""
+    """K-fold cross-validation
+    
+    Input
+    -----
+      x        -- samples
+      y        -- data to be downsampled
+      K        -- number of partitions
+                  (default 10)
+      parallel -- parallelize the computation over each partition?
+                  (default True)
+      seeds    -- seed points for greedy algorithm
+                  (default None)
+      random   -- fill the partitions randomly from the data?
+                  (default True)
+    
+    Attributes
+    ----------
+      args   -- data array indexes of largest validation errors 
+                on each validation set
+      errors -- validation errors on each validation set
+    
+    Comments
+    --------
+    The default option for `K` is 10 so that a random 10% subset of the 
+    data is used to validate the trial reduced-order splines.
+    
+    If `seeds` option is None then the default seed points are used
+    for the greedy algorithm. See greedy.ReducedOrderSpline documentation
+    for further information.
+    
+    If `random` option is False then the partitions are filled with the
+    data in sequential order. This is not a good idea for trying to 
+    assess interpolation errors because interpolating over large regions
+    of data will likely incur large errors. This option may be removed in 
+    future romSpline releases.
+    """
+    
     assert len(x) == len(y), "Expecting input data to have same length."
     
     self._K = int(K)
     self._size = len(x)
     
     # Allocate some memory
-    self.arg_errors = np.zeros(K, dtype='int')
+    self.args = np.zeros(K, dtype='int')
     self.errors = np.zeros(K, dtype='double')
-    self.rel_errors = np.zeros(K, dtype='double')
     
-    # Divide into K random or nearly equal partitions
+    # Divide into K nearly equal partitions
     if random:
       self._partitions = random_partitions(self._size, self._K)
     else:
       self._partitions = partitions(self._size, self._K)
     
-    if parallel is False:
+    if (parallel is False) or (_parallel is False):
       for ii in range(self._K):
-        self.arg_errors[ii], self.errors[ii], self.rel_errors[ii] = _Kfold(x, y, self._K, ii, self._partitions, tol=self._tol, rel=self._rel, deg=self._deg, seeds=seeds)
-    else:
+        self.args[ii], self.errors[ii] = _Kfold(x, y, self._K, ii, self._partitions, tol=self._tol, rel=self._rel, deg=self._deg, seeds=seeds)
+    elif _parallel is True:
       # Determine the number of processes to run on
       if parallel is True:
         try:
@@ -422,144 +691,234 @@ class CrossValidation(object):
       
       # Gather the results as they complete
       for ii, ee in enumerate(as_completed(output)):
-        self.arg_errors[ii], self.errors[ii], self.rel_errors[ii] = ee.result()
+        self.args[ii], self.errors[ii] = ee.result()
     
     self._made = True
   
   
-  def Kfold_ensemble(self, x, y, n, K=10, parallel=True, seeds=None, random=True, verbose=False):
-    """Perform a number n of K-fold cross-validations"""
-    self.ens_arg_errors, self.ens_errors, self.ens_rel_errors = [], [], []
+  def MonteCarloKfold(self, x, y, n, K=10, parallel=True, seeds=None, random=True, verbose=False):
+    """Perform a number n of K-fold cross-validations
+    
+    Input
+    -----
+      x        -- samples
+      y        -- data to be downsampled
+      n        -- number of times to repeat K-fold cross-validation
+                  with a random distribution of the data into the 
+                  K partitions
+      K        -- number of partitions
+                  (default 10)
+      parallel -- parallelize the computation over each partition?
+                  (default True)
+      seeds    -- seed points for greedy algorithm
+                  (default None)
+      random   -- fill the partitions randomly from the data?
+                  (default True)
+      verbose  -- print progress to screen?
+                  (default False)
+    
+    Attributes
+    ----------
+      mc_args   -- array of data array indexes of validation errors on each
+                   validation set
+      mc_errors -- array of validation errors on each realized validation set
+    
+    Comments
+    --------
+    The default option for `K` is 10 so that a random 10% subset of the 
+    data is used to validate the trial reduced-order splines.
+    
+    If `seeds` option is None then the default seed points are used
+    for the greedy algorithm. See greedy.ReducedOrderSpline documentation
+    for further information.
+    
+    If `random` option is False then the partitions are filled with the
+    data in sequential order. This is not a good idea for trying to 
+    assess interpolation errors because interpolating over large regions
+    of data will likely incur large errors. This option may be removed in 
+    future romSpline releases.
+    """
+    
+    self.mc_args, self.mc_errors = [], []
     for nn in range(n):
+      
       if verbose and not (nn+1)%10:
         print "Trials completed:", nn+1
+      
       self.Kfold(x, y, K=K, parallel=parallel, seeds=seeds, random=random)
-      self.ens_arg_errors.append( self.arg_errors )
-      self.ens_errors.append( self.errors )
-      self.ens_rel_errors.append( self.rel_errors )
+      self.mc_args.append( self.args )
+      self.mc_errors.append( self.errors )
+      
+      self.mc_mean_errors = map(np.mean, self.mc_errors)
   
   
-  def ensemble_stats(self, lq=0.05, uq=0.95, rel=False):
-    """Compute mean, median, and two quantiles of ensemble of mean errors"""
-    # Compute means of ensemble errors
-    if rel:
-      error_means = map(np.mean, self.ens_rel_errors)
-    else:
-      error_means = map(np.mean, self.ens_errors)
+  def stats(self, lq=0.05, uq=0.95):
+    """Compute mean, median, and two quantiles of ensemble of mean errors
+    
+    Input
+    -----
+      lq  -- low quantile (< 0.5)
+             (default 0.05)
+      uq  -- upper quantile (> 0.5)
+             (default 0.95)
+    
+    Attributes
+    ----------
+      mc_mean           -- mean of ensemble of mean errors
+      mc_std            -- sample standard deviation of ensemble of mean errors
+      mc_lower_quantile -- lower quantile of ensemble of mean errors
+      mc_upper_quantile -- upper quantile of ensemble of mean errors
+      mc_median         -- median of ensemble of mean errors
+    """
     
     # Mean of error means and sample standard deviation
-    mean = np.mean(error_means)
-    std = np.std(error_means, ddof=1)
-
-    # Specific quantiles of error means
-    lower, median, upper = mquantiles(error_means, prob=[lq, 0.5, uq])
+    self.mc_mean = np.mean(self.mc_mean_errors)
+    self.mc_std = np.std(self.mc_mean_errors, ddof=1)
     
-    return mean, std, [lower, median, upper]
+    # Specific quantiles of error means
+    self.mc_lower_quantile, self.mc_median, self.mc_upper_quantile = mquantiles(self.mc_mean_errors, prob=[lq, 0.5, uq])
   
   
-  def plot_ensemble_errors(self, lq=0.05, uq=0.95, n=20, ax=None, rel=False, show=True):
+  def plot_mc_errors(self, lq=0.05, uq=0.95, n=20, ax=None, show=True):
+    """Plot a histogram of the mean validation errors from 
+    a Monte Carlo K-fold cross-validation study
+    
+    Input
+    -----
+      lq   -- low quantile (< 0.5)
+              (default 0.05)
+      uq   -- upper quantile (> 0.5)
+              (default 0.95)
+      n    -- number of histogram bins
+              (default 20)
+      ax   -- matplotlib plot/axis object
+              (default None)
+      show -- display the plot?
+              (default True)
+    
+    Output
+    ------
+      If show=True then the plot is displayed.
+      Otherwise, the matplotlib plot/axis object is output.
+    """
     
     if self._made:
       if ax is None:
         fig, ax = plt.subplots(nrows=1, ncols=1)
       
-      if rel:
-        y_plot = map(np.mean, self.ens_rel_errors)
-        ax.set_xlabel('Mean relative spline errors')
-      else:
-        y_plot = map(np.mean, self.ens_errors)
-        ax.set_xlabel('Mean absolute spline error')
-      
-      lower, median, upper = mquantiles(y_plot, prob=[lq, 0.5, uq])
+      # Compute statistics of MonteCarloKfold output
+      self.stats(lq=lq, uq=uq)
       
       # Plot histogram of mean errors
-      ax.hist(np.log10(y_plot), n, color='k', alpha=0.33)
+      ax.hist(np.log10(self.mc_mean_errors), n, color='k', alpha=0.33)
       
       # Plot mean (blue) and median (red) of mean errors
-      ax.axvline(np.log10(np.mean(y_plot)), 0, 1, color='b', label='Mean')
-      ax.axvline(np.log10(median), 0, 1, color='r', label='Median')
+      ax.axvline(np.log10(self.mc_mean), 0, 1, color='b', label='Mean')
+      ax.axvline(np.log10(self.mc_median), 0, 1, color='r', label='Median')
       
       # Plot lq and uq quantiles (dashed red)
-      ax.axvline(np.log10(upper), 0, 1, color='r', linestyle='--', label=str(int(uq*100))+'th quantile')
-      ax.axvline(np.log10(lower), 0, 1, color='r', linestyle='--', label=str(int(lq*100))+'th quantile')
+      ax.axvline(np.log10(self.mc_upper_quantile), 0, 1, color='r', linestyle='--', label=str(int(uq*100))+'th quantile')
+      ax.axvline(np.log10(self.mc_lower_quantile), 0, 1, color='r', linestyle='--', label=str(int(lq*100))+'th quantile')
       
-      ax.set_xlim(np.log10(0.95*np.min(y_plot)), np.log10(1.05*np.max(y_plot)))
+      ax.set_xlim(np.log10(0.95*np.min(self.mc_mean_errors)), np.log10(1.05*np.max(self.mc_mean_errors)))
+      ax.set_xlabel('Mean spline errors')
       ax.legend(loc='upper right', prop={'size':10})
       
-      if show:
+      if show:  # Display the plot
         plt.show()
-      else:
+      else:     # Otherwise, return plot objects for editing the plot in the future
         if ax is None:
           return fig, ax
         else:
           return ax
       
     else:
-      print "No data to plot. Run Kfold_ensemble."
+      print "No data to plot. Run `MonteCarloKfold` method."
       
   
-  def plot_partition_errors(self, x=None, ax=None, rel=False, show=True, excl=False):
+  def plot_partition_errors(self, ax=None, show=True):
+    """Plot the largest interpolation error for each validation
+    partition from a K-fold cross-validation study
     
+    Input
+    -----
+      ax   -- matplotlib plot/axis object
+              (default None)
+      show -- display the plot?
+              (default True)
+    
+    Output
+    ------
+      If show=True then the plot is displayed.
+      Otherwise, the matplotlib plot/axis object is output.
+    """
     if self._made:
       if ax is None:
         fig, ax = plt.subplots(nrows=1, ncols=1)
       
-      if x is not None:
-        x_plot = np.array([np.mean(x[pp]) for pp in self._partitions])
-        ax.set_xlabel('$x$ partition')
-      else:
-        x_plot = range(len(self._partitions))
-        ax.set_xlabel('Partition')
+      x_plot = range(len(self._partitions))
+      ax.plot(x_plot, self.errors, 'ko-')
       
-      if rel:
-        y_plot = self.rel_errors
-        ax.set_ylabel('Relative L-infinity spline error')
-      else:
-        y_plot = self.errors
-        ax.set_ylabel('$L_\\infty$ spline error')
-      
-      # Exclude boundary pieces, if req'd, since spline is extrapolating there
-      if excl:
-        ax.plot(x_plot[1:-1], y_plot[1:-1], 'ko-')
-      else:
-        ax.plot(x_plot, y_plot, 'ko-')
-      
+      ax.set_xlabel('Partition')
+      ax.set_ylabel('Validation error')
       ax.ticklabel_format(axis='y', style='sci', scilimits=(0,0))
       
-      if show:
+      if show:  # Display the plot
         plt.show()
-      else:
+      else:     # Otherwise, return plot objects for editing the plot in the future
         if ax is None:
           return fig, ax
         else:
           return ax
       
     else:
-      print "No data to plot. Run Kfold method."
+      print "No data to plot. Run `Kfold` method."
+  
+  
+  def plot_args_errors(self, x=None, axes='plot', ax=None, show=True):
+    """Plot all the Monte Carlo K-fold cross-validation errors
+    versus the samples at which the error is recorded 
+    in each of the validation partitions.
     
-    
-  def plot_Linfty_errors(self, n=20, ax=None, rel=False, show=True, excl=False):
+    Input
+    -----
+      x    -- samples
+              (default None)
+      axes -- axis scales for plotting
+              (default 'plot')
+      ax   -- matplotlib plot/axis object
+              (default None)
+      show -- display the plot?
+              (default True)
+    """
     
     if self._made:
       if ax is None:
         fig, ax = plt.subplots(nrows=1, ncols=1)
       
-      if rel:
-        data = np.log10(self.rel_errors)
-        ax.set_xlabel('$\\log_{10}$(Relative L-infinity spline error)')
-      else:
-        data = np.log10(self.errors)
-        ax.set_xlabel('$\\log_{10}$(L-infinity spline error)')
+      # Flatten mc_args and mc_errors arrays
+      # generated from MonteCarloKFold method
+      args = np.asarray(self.mc_args).flatten()
+      errors = np.asarray(self.mc_errors).flatten()
       
-      # Exclude boundary pieces, if req'd, since spline is extrapolating there
-      if excl:
-        ax.hist(data[1:-1], n, color='k', alpha=0.33)
+      if x is None:
+        xplot = args
+        ax.set_xlabel('Data array indexes')
       else:
-        ax.hist(data, n, color='k', alpha=0.33)
+        xplot = x[args]
+        ax.set_xlabel('$x$')
       
-      if show:
+      if axes == 'semilogy':
+        ax.semilogy(xplot, errors, 'k.')
+      elif axes == 'plot':
+        ax.plot(xplot, errors, 'k.')
+        ax.ticklabel_format(axis='y', style='sci', scilimits=(0,0))
+        
+      ax.set_ylabel('Validation errors')
+      
+      if show:  # Display the plot
         plt.show()
-      else:
+      else:     # Otherwise, return plot objects for editing the plot in the future
         if ax is None:
           return fig, ax
         else:
