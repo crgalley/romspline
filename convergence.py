@@ -191,7 +191,7 @@ class Convergence(object):
           return ax
       
     else:
-      print "No data to plot. Run make method."
+      print "No data to plot. Run `make` method."
   
   
   def _plot_Linfty_errors(self, ax):
@@ -213,16 +213,16 @@ class Convergence(object):
       ax.set_xlabel(xlabel)
       ax.set_ylabel(ylabel)
       
-      if show:
+      if show:  # Display the plot
         plt.show()
-      else:
+      else:     # Otherwise, return plot objects for editing the plot in the future
         if ax is None:
           return fig, ax
         else:
           return ax
         
     else:
-      print "No data to plot. Run make method."
+      print "No data to plot. Run `make` method."
   
   
   def _plot_sizes(self, ax, axes=None):
@@ -254,7 +254,29 @@ class Convergence(object):
     return ax
   
   
-  def plot_sizes(self, ax=None, show=True, axes=None, xlabel='Decimation factor', ylabel='Reduced data sizes'):
+  def plot_sizes(self, ax=None, show=True, axes='semilogx', xlabel='Decimation factor', ylabel='Reduced data sizes'):
+    """Plot the size of the reduced-order splines built 
+    for each requested decimation of the original dataset
+    
+    Input
+    -----
+      ax     -- matplotlib plot/axis object
+                (default None)
+      show   -- display the plot?
+                (default True)
+      axes   -- axis scales for plotting
+                (default 'semilogx')
+      xlabel -- label of x-axis
+                (default 'Decimation factor')
+      ylabel -- label of y-axis
+                (default 'Reduced data sizes')
+    
+    Output
+    ------
+      If show=True then the plot is displayed.
+      Otherwise, the matplotlib plot/axis object is output.
+    """
+    
     if self._made:
       
       if ax is None:
@@ -265,15 +287,15 @@ class Convergence(object):
       ax.set_xlabel(xlabel)
       ax.set_ylabel(ylabel)
       
-      if show:
+      if show:  # Display the plot
         plt.show()
-      else:
+      else:     # Otherwise, return plot objects for editing the plot in the future
         if ax is None:
           return fig, ax
         else:
           return ax
         
     else:
-      print "No data to plot. Run make method."
+      print "No data to plot. Run `make` method."
 
 
