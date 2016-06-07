@@ -9,9 +9,7 @@ from scipy.interpolate import UnivariateSpline
 ########################
 
 class ReducedOrderSpline(object):
-  """Class for building a reduced-order spline interpolant"""
-  
-  # TODO: Accommodate arrays of arrays
+  """Class for building a reduced-order spline interpolant of one-dimensional data"""
   
   def __init__(self, x=None, y=None, deg=5, tol=1e-6, rel=False, verbose=False, seeds=None):
     self._deg = deg
