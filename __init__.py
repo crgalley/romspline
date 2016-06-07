@@ -50,8 +50,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from greedy import *  # For building reduced-order splines
-from errors import *  # For quantifying interpolation uncertainties/errors
+from greedy import *            # For building reduced-order splines
+from convergence import *       # For studying convergence
+from random_seeds import *      # For studying the effect of seed points on reduced data sizes
+from cross_validation import *  # For estimating (global) interpolation errors
 
 
 ################################
