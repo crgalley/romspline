@@ -94,10 +94,10 @@ def overlap(x, y1, y2, weight=None, partial=None):
   assert len(y1) == len(y2)
   assert len(x) == len(y1)
   
-  norm1 = integrate(y1**2, x, weight=weight)**0.5
-  norm2 = integrate(y2**2, x, weight=weight)**0.5
+  norm1 = integrate(np.abs(y1)**2, x, weight=weight)**0.5
+  norm2 = integrate(np.abs(y2)**2, x, weight=weight)**0.5
   
-  return integrate(y1*y2/norm1/norm2, x, weight=weight, partial=partial)
+  return integrate(np.conjugate(y1)*y2/norm1/norm2, x, weight=weight, partial=partial).real()
 
 
 # def unique(x, y, rule='mean'):
