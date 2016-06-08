@@ -18,7 +18,7 @@ class Convergence(object):
   reduced dataset is essentially unchanged for consecutive decimations.
   """
   
-  def __init__(self, spline=None, tol=1e-6, rel=False, deg=5):
+  def __init__(self, spline=None, tol=1e-6, rel=False, deg=5, seeds=None):
     """Create a Convergence object.
     
     Input
@@ -37,6 +37,7 @@ class Convergence(object):
     self._tol = tol
     self._rel = rel
     self._deg = deg
+    self._seeds = seeds
     self.splines = dict()
     self.errors = dict()
     self.compressions = dict()
@@ -103,7 +104,7 @@ class Convergence(object):
     if self._spline:
       self.splines[1] = self._spline
     else:
-      self.splines[1] = greedy.ReducedOrderSpline(x, y, deg=self._deg, tol=self._tol, rel=self._rel)
+      self.splines[1] = greedy.ReducedOrderSpline(x, y, deg=self._deg, tol=self._tol, rel=self._rel, seeds=self._seeds)
     
     # Build reduced-order splines for each requested decimation level
     for ll in self.levs:
@@ -115,8 +116,14 @@ class Convergence(object):
         if x[-1] not in x_lev:
           x_lev = np.hstack([x_lev, x[-1]])
           y_lev = np.hstack([y_lev, y[-1]])
-            
-        self.splines[ll] = greedy.ReducedOrderSpline(x_lev, y_lev, deg=self._deg, tol=self._tol, rel=self._rel)
+        
+        # Adjust the indices of the seeds for the different lev
+        if self._seeds is None:
+          seeds = None
+        else:
+          seeds = [int(float(ss)/ll) for ss in self._seeds]
+        
+        self.splines[ll] = greedy.ReducedOrderSpline(x_lev, y_lev, deg=self._deg, tol=self._tol, rel=self._rel, seeds=seeds)
       
       # Compute the compression factor and L-infinity absolute error for this lev
       self.errors[ll] = Linfty(self.splines[ll].eval(x), y)
@@ -130,13 +137,13 @@ class Convergence(object):
     
     Input
     -----
-      ax   -- plot object
+      ax   -- matplotlib plot/axis object
       axes -- type of axes to plot
               (default None)
     
     Output
     ------
-      plot object
+      matplotlib plot/axis object
     """
     
     if axes is None:
