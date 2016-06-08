@@ -1,4 +1,4 @@
-import numpy as np, h5py, os
+import numpy as np, matplotlib.pyplot as plt, h5py, os
 from scipy.interpolate import UnivariateSpline
 
 
@@ -22,7 +22,8 @@ class ReducedOrderSpline(object):
         x = np.arange(len(y))
       assert len(x) == len(y), "Array sizes must be equal."
       self.greedy(x, y, deg=deg, tol=tol, rel=rel, verbose=verbose, seeds=seeds)
-    
+  
+  
   def seed(self, x, seeds=None):
     """Seed the greedy algorithm with (deg+1) evenly spaced indices"""
     if seeds is None:
@@ -34,6 +35,7 @@ class ReducedOrderSpline(object):
     
     # Keep track of unsorted indices selected by greedy algorithm
     self.args = self.indices[:]
+  
   
   def greedy(self, x, y, tol=1e-6, rel=False, deg=5, verbose=False, seeds=None):
     """
@@ -95,13 +97,16 @@ class ReducedOrderSpline(object):
     self.size = len(self.indices)
     self.compression = float(len(y))/self.size
     self._made = True
-    
+  
+  
   def __call__(self, x, dx=0):
    return self.eval(x, dx=dx)
+  
   
   def eval(self, x, dx=0):
     """Evaluate reduced-order spline or its dx derviatives at x"""
     return self._spline(x, dx)
+  
   
   def verify(self, x, y):
     """Verify the reduced-order spline on the training data"""
@@ -112,6 +117,62 @@ class ReducedOrderSpline(object):
     print "Reduced-order spline meets tolerance:", np.all(np.abs(errors) <= self.tol)
     # TODO: Add plot of training data errors?
     return errors
+  
+  
+  def plot_greedy_errors(self, rel=False, ax=None, show=True, axes='semilogy', xlabel='Size of reduced data', ylabel='Greedy errors'):
+    """Plot the greedy errors versus size of the reduced data.
+    
+    Input
+    -----
+      ax     -- matplotlib plot/axis object
+                (default None)
+      show   -- display the plot?
+                (default True)
+      axes   -- axis scales for plotting
+                (default 'semilogy')
+      xlabel -- label of x-axis
+                (default 'Size of reduced data')
+      ylabel -- label of y-axis
+                (default 'Greedy errors')
+    
+    Output
+    ------
+      If show=True then the plot is displayed.
+      Otherwise, the matplotlib plot/axis object is output.
+    """
+    
+    if self._made:  # Check if spline data made
+      if ax is None:
+        fig, ax = plt.subplots(nrows=1, ncols=1)
+      
+      data = self.errors
+      if rel:
+        data *= self._tol / self.tol
+      
+      # Select the axes upon which to plot the greedy errors
+      if axes == 'semilogy':
+        ax.semilogy(np.arange(1, len(data)+1), data, 'k-')
+      elif axes == 'semilogx':
+        ax.semilogx(np.arange(1, len(data)+1), data, 'k-')
+      elif axes == 'loglog':
+        ax.loglog(np.arange(1, len(data)+1), data, 'k-')
+      elif axes == 'plot':
+        ax.plot(np.arange(1, len(data)+1), data, 'k-')
+      
+      ax.set_xlabel(xlabel)
+      ax.set_ylabel(ylabel)
+      
+      if show:  # Display the plot
+        plt.show()  
+      else:     # Otherwise, return plot objects for editing the plot in the future
+        if ax is None:
+          return fig, ax
+        else:
+          return ax
+      
+    else:
+      print "No data to plot. Run `greedy` method."
+  
   
   def write(self, file, slim=False):
     """
@@ -201,6 +262,7 @@ class ReducedOrderSpline(object):
             fp.write(str(ee)+'\n')
           fp.close()
   
+  
   def _write(self, descriptor, slim=False):
     """Write reduced order spline data to HDF5 file given a file or group descriptor"""
     if descriptor.__class__ in [h5py._hl.files.File, h5py._hl.group.Group]:
@@ -212,7 +274,8 @@ class ReducedOrderSpline(object):
         descriptor.create_dataset('errors', data=self.errors, dtype='double', compression='gzip', shuffle=True)
     else:
       raise Exception, "Descriptor not recognized."
-    
+  
+  
   def read(self, file, group=None):
     """
     Load spline interpolant data from HDF5 or text format
@@ -338,19 +401,40 @@ def readSpline(file, group=None):
 
 #################################
 # Functions for parallelization #
-# (see uncQuant.py)             #
 #################################
 
 def _seed(x, deg=5, seeds=None):
-  """Seed the greedy algorithm with (deg+1) evenly spaced indices"""
+  """Seed the greedy algorithm with (deg+1) evenly spaced indices
+  
+  Input
+  -----
+    x     -- samples
+    deg   -- degree of spline polynomial
+             (default 5)
+    seeds -- list or array of indices of initial seed samples
+             (default None)
+  
+  Comment
+  -------
+  If `seeds` is None then the code chooses the seed points to be the
+  first and last indices and (deg-1) points in between that are
+  as nearly equally spaced as possible.
+  
+  If a list or array of `seeds` are entered then these are used
+  instead.
+  """
   if seeds is None:
     f = lambda m, n: [ii*n//m + n//(2*m) for ii in range(m)]
     indices = np.sort(np.hstack([[0, len(x)-1], f(deg-1, len(x))]))
   else:
+    assert type(seeds) in [list, np.ndarray], "Expecting a list or numpy array."
+    assert len(seeds) == len(np.unique(seeds)), "Expecting `seeds` to have distinct entries."
+    assert len(seeds) >= deg+1, "Expecting `seeds` list to have at least {} entries.".format(deg+1)
     indices = seeds
   errors = []
   
   return np.array(indices, dtype='int'), errors
+
 
 def _greedy(x, y, tol=1e-6, rel=False, deg=5, verbose=False, seeds=None):
   """Greedy algorithm for building a reduced-order spline"""
@@ -381,10 +465,10 @@ def _greedy(x, y, tol=1e-6, rel=False, deg=5, verbose=False, seeds=None):
     # Get the index of the largest interpolation error on y
     imax = np.argmax( errs )
     
-    # Update arrays with "worst knot"
+    # Update arrays with data point that gives largest interpolation error
     errors.append( errs[imax] )
     args = np.hstack([args, imax])
-    indices = np.sort(np.hstack([indices, imax]))  # Knots must be sorted
+    indices = np.sort(np.hstack([indices, imax]))  # Indices sorted for spline interpolation
     
     # Print to screen, if requested
     if verbose:
