@@ -19,7 +19,7 @@ from helpers import *
 # K-fold cross validation #
 ###########################
 
-def _Kfold(x, y, K, partition, partitions, tol=1e-6, rel=False, deg=5):
+def _Kfold(x, y, K, p_label, partitions, tol=1e-6, rel=False, deg=5):
   """K-fold cross validation on a given partition
   
   Input
