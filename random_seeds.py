@@ -162,7 +162,7 @@ class RandomSeeds(object):
       for ii, oo in enumerate(as_completed(output)):
         self.errors[ii], self.sizes[ii], self.seeds[ii], Xs = oo.result()
         self.Xs.append(Xs)
-        
+    
     self._made = True
   
   
@@ -252,6 +252,70 @@ class RandomSeeds(object):
           return ax
     
     else:
-      print "No data to plot. Run make method or set _made attribute to True."
+      print "No data to plot. Run `make` method or set _made attribute to True."
+
+
+
+def small_spline(x, y, num, tol=1e-6, deg=None, rel=False, parallel=True, verbose=False):
+  """Build reduced-order splines for a number of randomly selected
+  input seed points for the purpose of finding the spline with the
+  smallest such reduced data over the sampled seeds. The degree of
+  the spline polynomial can also be varied.
+  
+  Input
+  -----
+    x        -- samples
+    y        -- data to be downsampled
+    num      -- number of sets of random initial seed points
+    tol      -- L-infinity error tolerance for reduced-order spline 
+                (default 1e-6)
+    deg      -- degree of interpolating polynomials 
+                (default None)
+    rel      -- L-infinity error tolerance is relative to max abs of data?
+                (default False)
+    parallel -- parallelize the computation of each random seed set?
+                (default True)
+    verbose  -- print progress to screen?
+                (default False)
+  
+  Output
+  ------
+  Reduced-order spline object with the smallest reduced data size
+  for the seeds (and spline degrees) sampled.
+  
+  Comments
+  --------
+  If deg is None then polynomials of degrees 1-5 are also sampled, in
+  addition to the random sets of initial seeds.
+  """
+  
+  if deg is None:
+    degs = range(1, 6)
+  else:
+    degs = [deg]
+  
+  size = len(x)+1  # Add 1 to guarantee that a smaller size will be found below
+  
+  for ii, dd in enumerate(degs):
+    if verbose:
+      print "Smallest spline for degree {} is...".format(dd),
+    
+    # Sample from the set of all possible initial 
+    # seeds for this polynomial degree
+    rand = RandomSeeds(tol=tol, deg=dd, rel=rel)
+    rand.make(x, y, num, parallel=parallel)
+    
+    if verbose:  # Print smallest size found in sample
+      print int(np.min(rand.sizes))
+    
+    # Find smallest spline in the sample for this polynomial degree
+    imin = np.argmin(rand.sizes)
+    if rand.sizes[imin] < size:
+      size = rand.sizes[imin]
+      seed = rand.seeds[imin]
+      degree = dd
+  
+  # Output the reduced-order spline object for the smallest case
+  return greedy.ReducedOrderSpline(x, y, tol=tol, deg=degree, rel=rel, seeds=seed)
 
 
