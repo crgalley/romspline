@@ -19,28 +19,48 @@ from helpers import *
 # K-fold cross validation #
 ###########################
 
-def _Kfold(x, y, K, i_fold, folds, tol=1e-6, rel=False, deg=5, seeds=None):
-  """K-fold cross validation on a given partition"""
+def _Kfold(x, y, K, partition, partitions, tol=1e-6, rel=False, deg=5):
+  """K-fold cross validation on a given partition
+  
+  Input
+  -----
+    x          -- samples
+    y          -- data values at samples
+    K          -- number of partitions
+    p_label    -- partition label (counting starts from 0)
+    partitions -- all K partitions of sample labels
+    tol        -- L-infinity error tolerance for reduced-order spline 
+                  (default 1e-6)
+    rel        -- L-infinity error tolerance is relative to max abs of data?
+                  (default False)
+    deg        -- degree of interpolating polynomials 
+                  (default 5)
+  
+  Output
+  ------
+    sample index where largest validation error occurs
+    largest validation error
+  """
   
   # Assemble training data excluding the i_fold'th partition for validation
   # TODO: These next few lines could be implemented more efficiently...
-  folds = np.asarray(folds)
-  complement = np.ones(len(folds), dtype='bool')
-  complement[i_fold] = False
-  f_trial = np.sort( np.concatenate([ff for ff in folds[complement]]) )
-  fold = folds[i_fold]
+  partitions = np.asarray(partitions)
+  complement = np.ones(len(partitions), dtype='bool')
+  complement[p_label] = False
+  training = np.sort( np.concatenate([ff for ff in partitions[complement]]) )
+  validation = partitions[p_label]
 
   # Form trial data
-  x_trial = x[f_trial]
-  y_trial = y[f_trial]
+  x_training = x[training]
+  y_training = y[training]
   
   # Build trial spline
-  spline = greedy._greedy(x_trial, y_trial, tol=tol, rel=rel, deg=deg, seeds=seeds)[0]
+  spline = greedy._greedy(x_training, y_training, tol=tol, rel=rel, deg=deg)[0]
   
-  # Compute L-infinity errors between trial and data in validation partition
-  error, arg_error = Linfty(spline(x[fold]), y[fold], arg=True)
+  # Compute L-infinity errors between training and data in validation partition
+  error, arg = Linfty(spline(x[validation]), y[validation], arg=True)
   
-  return fold[arg_error], error
+  return validation[arg], error
 
 
 class CrossValidation(object):
