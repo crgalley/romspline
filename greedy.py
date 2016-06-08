@@ -108,14 +108,30 @@ class ReducedOrderSpline(object):
     return self._spline(x, dx)
   
   
-  def verify(self, x, y):
-    """Verify the reduced-order spline on the training data"""
+  def test(self, x, y, verbose=False):
+    """Test (or verify) the reduced-order spline on some given data.
+    If the data is the training set then this function verifies that
+    the spline meets the requested tolerance.
+    
+    Input
+    -----
+      x       -- samples
+      y       -- data values at samples
+      verbose -- print to screen the results of the test?
+                 (default False)
+    
+    Output
+    ------
+    Absolute errors between the data values (y) and the reduced-
+    order spline interpolant's prediction.
+    """
+    
     if self._made:
       errors = y - self._spline(x)
     else:
       raise Exception, "No spline interpolant to compare against. Run the greedy method."
-    print "Reduced-order spline meets tolerance:", np.all(np.abs(errors) <= self.tol)
-    # TODO: Add plot of training data errors?
+    print "Is requested tolerance of {} met?".format(self._tol), np.all(np.abs(errors) <= self.tol)
+    
     return errors
   
   
