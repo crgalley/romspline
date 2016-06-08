@@ -39,8 +39,6 @@ def _Kfold(x, y, K, i_fold, folds, tol=1e-6, rel=False, deg=5, seeds=None):
   
   # Compute L-infinity errors between trial and data in validation partition
   error, arg_error = Linfty(spline(x[fold]), y[fold], arg=True)
-  if rel:
-    error /= np.max(np.abs(y))
   
   return fold[arg_error], error
 
@@ -85,7 +83,7 @@ class CrossValidation(object):
     self._made = False
   
   
-  def Kfold(self, x, y, K=10, parallel=True, seeds=None, random=True):
+  def Kfold(self, x, y, K=10, parallel=True, random=True):
     """K-fold cross-validation
     
     Input
@@ -96,8 +94,6 @@ class CrossValidation(object):
                   (default 10)
       parallel -- parallelize the computation over each partition?
                   (default True)
-      seeds    -- seed points for greedy algorithm
-                  (default None)
       random   -- fill the partitions randomly from the data?
                   (default True)
     
@@ -111,10 +107,6 @@ class CrossValidation(object):
     --------
     The default option for `K` is 10 so that a random 10% subset of the 
     data is used to validate the trial reduced-order splines.
-    
-    If `seeds` option is None then the default seed points are used
-    for the greedy algorithm. See greedy.ReducedOrderSpline documentation
-    for further information.
     
     If `random` option is False then the partitions are filled with the
     data in sequential order. This is not a good idea for trying to 
@@ -140,7 +132,7 @@ class CrossValidation(object):
     
     if (parallel is False) or (_parallel is False):
       for ii in range(self._K):
-        self.args[ii], self.errors[ii] = _Kfold(x, y, self._K, ii, self._partitions, tol=self._tol, rel=self._rel, deg=self._deg, seeds=seeds)
+        self.args[ii], self.errors[ii] = _Kfold(x, y, self._K, ii, self._partitions, tol=self._tol, rel=self._rel, deg=self._deg)
     elif _parallel is True:
       # Determine the number of processes to run on
       if parallel is True:
@@ -157,7 +149,7 @@ class CrossValidation(object):
       # Compute the spline errors on each validation partition
       output = []
       for ii in range(self._K):
-        output.append( executor.submit(_Kfold, x, y, self._K, ii, self._partitions, tol=self._tol, rel=self._rel, deg=self._deg, seeds=seeds) )
+        output.append( executor.submit(_Kfold, x, y, self._K, ii, self._partitions, tol=self._tol, rel=self._rel, deg=self._deg) )
       
       # Gather the results as they complete
       for ii, ee in enumerate(as_completed(output)):
@@ -166,7 +158,7 @@ class CrossValidation(object):
     self._made = True
   
   
-  def MonteCarloKfold(self, x, y, n, K=10, parallel=True, seeds=None, random=True, verbose=False):
+  def MonteCarloKfold(self, x, y, n, K=10, parallel=True, random=True, verbose=False):
     """Perform a number n of K-fold cross-validations
     
     Input
@@ -180,8 +172,6 @@ class CrossValidation(object):
                   (default 10)
       parallel -- parallelize the computation over each partition?
                   (default True)
-      seeds    -- seed points for greedy algorithm
-                  (default None)
       random   -- fill the partitions randomly from the data?
                   (default True)
       verbose  -- print progress to screen?
@@ -198,10 +188,6 @@ class CrossValidation(object):
     The default option for `K` is 10 so that a random 10% subset of the 
     data is used to validate the trial reduced-order splines.
     
-    If `seeds` option is None then the default seed points are used
-    for the greedy algorithm. See greedy.ReducedOrderSpline documentation
-    for further information.
-    
     If `random` option is False then the partitions are filled with the
     data in sequential order. This is not a good idea for trying to 
     assess interpolation errors because interpolating over large regions
@@ -215,7 +201,7 @@ class CrossValidation(object):
       if verbose and not (nn+1)%10:
         print "Trials completed:", nn+1
       
-      self.Kfold(x, y, K=K, parallel=parallel, seeds=seeds, random=random)
+      self.Kfold(x, y, K=K, parallel=parallel, random=random)
       self.mc_args.append( self.args )
       self.mc_errors.append( self.errors )
       
