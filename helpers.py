@@ -7,16 +7,39 @@ import numpy as np
 ########################
 
 def partitions(n, K):
-  """Split array with n samples into K (nearly) equal partitions"""
+  """Split array with n samples into K (nearly) equal partitions
+  
+  Input
+  -----
+    n -- number of elements to partition into K subsets
+    K -- number of partitions
+  
+  Output
+  ------
+  K arrays whose elements are contiguous intervals of an array of
+  sequential integers with length n.
+  """
+  
   assert n >= K, "Number of partitions must not exceed number of samples."
   return np.asarray( np.array_split(np.arange(n), K) )
 
 
 def random_partitions(n, K):
   """Split array with n samples into K (nearly) equal 
-  partitions of non-overlapping random subsets
+  partitions of non-overlapping random subsets.
+  
+  Input
+  -----
+    n -- number of elements to partition into K subsets
+    K -- number of partitions
+  
+  Output
+  ------
+  K arrays whose elements are randomly drawn from an array of 
+  sequential integers with length n.
   """
-  assert n >= K, "Number of folds must not exceed number of samples."
+  
+  assert n >= K, "Number of partitions must not exceed number of samples."
   
   # Make array with unique random integers
   rand = np.random.choice(range(n), n, replace=False)
@@ -25,9 +48,20 @@ def random_partitions(n, K):
   return [np.sort(rand[pp]) for pp in partitions(n, K)]
 
 
-def Linfty(x, y, arg=False):
-  """L-infinity norm of x - y"""
-  diff = np.abs(x-y)
+def Linfty(y1, y2, arg=False):
+  """L-infinity norm of y1 - y2.
+  
+  Input
+  -----
+    y1 -- First array
+    y2 -- Second array (must have same length as y1)
+  
+  Output
+  ------
+  Maximum of the absolute value in the pointwise
+  difference of y1-y2.
+  """
+  diff = np.abs(y1-y2)
   max_diff = np.max(diff)
   if arg:
     return max_diff, np.argmax(diff)
@@ -89,8 +123,24 @@ def integrate(y, x, weight=None, partial=False):
   return ans
 
 
-def overlap(x, y1, y2, weight=None, partial=None):
+def overlap(x, y1, y2, weight=None, partial=False):
+  """Compute the overlap integral of two arrays.
   
+  Input
+  -----
+    x       -- samples
+    y1      -- first array
+    y2      -- second array
+    weight  -- integration weight
+               (default is None)
+    partial -- compute the partial sum as well?
+               (default False)
+  
+  Output
+  ------
+  Value of the overlap.
+  Array of partial sums, if requested.
+  """
   assert len(y1) == len(y2)
   assert len(x) == len(y1)
   
@@ -156,6 +206,23 @@ def total_compression(*compressions):
 #        differentiation          #
 ###################################
 
+def D(y, x, dx=1, order=4):
+  """Deriviative(s) of y with respect to x using finite differencing"""
+  # Look up finite differencing weights
+  h = x[1]-x[0]
+  weights = _FD_weights(dx, order, order/2., h)
+  
+  # Compute finite difference derivatives
+  ans = np.zeros(y.size, dtype=y.dtype)
+  for ii, xx in enumerate(x):
+    ix_patch, _, ix = _make_patch(xx, x, order)
+    if float(ix) != order/2.:
+      weights = _FD_weights(dx, order, ix, h)
+    ans[ii] = np.dot(y[ix_patch], weights)
+  
+  return ans
+
+
 def _get_arg(a, x):
   """Get index of array a that has the closest value to x"""
   return abs(a-x).argmin()
@@ -191,23 +258,6 @@ def _check_patch(i, dileft, diright, dim):
     ans = dim-diright
   else:
     ans = i
-  return ans
-
-
-def D(y, x, dx=1, order=4):
-  """Deriviative(s) of y with respect to x using finite differencing"""
-  # Look up finite differencing weights
-  h = x[1]-x[0]
-  weights = _FD_weights(dx, order, order/2., h)
-  
-  # Compute finite difference derivatives
-  ans = np.zeros(y.size, dtype=y.dtype)
-  for ii, xx in enumerate(x):
-    ix_patch, _, ix = _make_patch(xx, x, order)
-    if float(ix) != order/2.:
-      weights = _FD_weights(dx, order, ix, h)
-    ans[ii] = np.dot(y[ix_patch], weights)
-  
   return ans
 
 
