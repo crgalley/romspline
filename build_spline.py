@@ -3,7 +3,7 @@ import greedy, random_seeds, cross_validation
 
 
 def build_spline(x, y, tol=1e-6, deg=None, rel=False, seeds=None, small=True, cv=True, K=10, parallel=True, verbose=True):
-  """Build a reduced-order spline interpolant with given tolerance and degree.
+  """Build a reduced-order spline interpolant with requested tolerance and degree.
   Options include `small`, for randomly sampling the initial seed points to 
   find a smallest reduced data set, and `cv` for performing a Monte Carlo
   K-fold cross-validation in order to estimate a global interpolation error.
@@ -20,8 +20,15 @@ def build_spline(x, y, tol=1e-6, deg=None, rel=False, seeds=None, small=True, cv
                 (default is False)
     seeds    -- seed indexes for greedy algorithm 
                 (default is None (equally spaced))
-    small    -- 
-    cv       -- 
+    small    -- Build a "smallest" reduced-order spline?
+                If so, how many sets of initial seed values
+                should be used?
+                (default True)
+    cv       -- Perform a Monte Carlo K-fold cross-validation
+                study to estimate the global interpolation error?
+                If so, how many trial K-fold cross-validation 
+                studies should be performed?
+                (default True)
     K        -- number of partitions
                 (default 10)
     parallel -- parallelize the computation?
