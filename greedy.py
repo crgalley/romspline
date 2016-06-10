@@ -100,15 +100,52 @@ class ReducedOrderSpline(object):
   
   
   def __call__(self, x, dx=0):
-   return self.eval(x, dx=dx)
+    """Evaluate reduced-order spline or its dx derviatives at x
+    
+    Input
+    -----
+      x  -- samples
+      dx -- number of derivatives of the spline evaluation
+            to compute
+            (default 0)
+    
+    Output
+    ------
+    Array of reduced-order spline evaluations at the samples `x` 
+    and `dx` number of derivatives computed.
+    
+    Comments
+    --------
+    The max number of derivatives that can be computed equals the
+    degree of the spline.
+    """
+    return self.eval(x, dx=dx)
   
   
   def eval(self, x, dx=0):
-    """Evaluate reduced-order spline or its dx derviatives at x"""
+    """Evaluate reduced-order spline or its dx derviatives at x
+    
+    Input
+    -----
+      x  -- samples
+      dx -- number of derivatives of the spline evaluation
+            to compute
+            (default 0)
+    
+    Output
+    ------
+    Array of reduced-order spline evaluations at the samples `x` 
+    and `dx` number of derivatives computed.
+    
+    Comments
+    --------
+    The max number of derivatives that can be computed equals the
+    degree of the spline.
+    """
     return self._spline(x, dx)
   
   
-  def test(self, x, y, verbose=False):
+  def test(self, x, y, abs=True, dx=0, verbose=False):
     """Test (or verify) the reduced-order spline on some given data.
     If the data is the training set then this function verifies that
     the spline meets the requested tolerance.
@@ -117,6 +154,11 @@ class ReducedOrderSpline(object):
     -----
       x       -- samples
       y       -- data values at samples
+      abs     -- output absolute values of error?
+                 (default True)
+      dx      -- number of derivatives of the spline evaluation
+                 to compute
+                 (default 0)
       verbose -- print to screen the results of the test?
                  (default False)
     
@@ -124,10 +166,17 @@ class ReducedOrderSpline(object):
     ------
     Absolute errors between the data values (y) and the reduced-
     order spline interpolant's prediction.
+    
+    Comments
+    --------
+    The max number of derivatives that can be computed equals the
+    degree of the spline.
     """
     
     if self._made:
-      errors = y - self._spline(x)
+      errors = y - self._spline(x, dx)
+      if abs:
+        errors = np.abs(errors)
     else:
       raise Exception, "No spline interpolant to compare against. Run the greedy method."
     print "Requested tolerance of {} met: ".format(self._tol), np.all(np.abs(errors) <= self.tol)
@@ -303,7 +352,7 @@ class ReducedOrderSpline(object):
     
     Valid extensions are 'h5', 'hdf5', and 'txt'.
     """
-    ans = helpers.readSpline(file, group=group)
+    ans = readSpline(file, group=group)
     #self._spline, self.X, self.Y, self._deg, self.errors, self.tol = out
     self._spline = ans._spline
     self.X = ans.X
