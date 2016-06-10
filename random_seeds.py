@@ -139,7 +139,8 @@ class RandomSeeds(object):
     
     if (parallel is False) or (_parallel is False):
       for nn in range(Nseeds):
-        self.errors[nn], self.sizes[nn], self.seeds[nn] = _randomSeeds(x, y, tol=self._tol, rel=self._rel, deg=self._deg)
+        self.errors[nn], self.sizes[nn], self.seeds[nn], Xs = _randomSeeds(x, y, tol=self._tol, rel=self._rel, deg=self._deg)
+        self.Xs.append(Xs)
     elif _parallel is True:
       # Determine the number of processes to run on
       if parallel is True:
