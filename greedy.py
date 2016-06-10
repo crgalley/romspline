@@ -303,7 +303,7 @@ class ReducedOrderSpline(object):
     
     Valid extensions are 'h5', 'hdf5', and 'txt'.
     """
-    ans = readSpline(file, group=group)
+    ans = helpers.readSpline(file, group=group)
     #self._spline, self.X, self.Y, self._deg, self.errors, self.tol = out
     self._spline = ans._spline
     self.X = ans.X
@@ -312,6 +312,108 @@ class ReducedOrderSpline(object):
     self.errors = ans.errors
     self.tol = ans.tol
     self._made = True
+
+
+def readSpline(file, group=None):
+  """
+  Load spline interpolant data from HDF5 or text format 
+  without having to create a ReducedOrderSpline object.
+  
+  Input
+  =====
+  file -- load data from this file assuming form of
+          /my/directory/filename.extension
+  
+  Output
+  ======
+  spline -- object that has the attributes and methods
+            of ReducedOrderSpline class
+  
+  Valid file extensions are 'h5', 'hdf5', and 'txt'.
+  """
+  
+  # Get file name and extension
+  types = ['.txt', '.h5', '.hdf5']
+  filename, file_extension = os.path.splitext(file)
+  assert file_extension in types, "File type must be have extension txt, h5, or hdf5."
+  
+  # HDF5 format
+  if file_extension == '.h5' or file_extension == '.hdf5':
+    try:
+      fp = h5py.File(file, 'r')
+      isopen = True
+    except:
+      raise Exception, "Could not open file for reading."
+    if isopen:
+      gp = fp[group] if group else fp
+      deg = gp['deg'][()]
+      tol = gp['tol'][()]
+      X = gp['X'][:]
+      Y = gp['Y'][:]
+      if hasattr(gp, 'errors') or 'errors' in gp.keys():
+        errors = gp['errors'][:]
+      else:
+        errors = []
+      fp.close()
+      _made = True
+  
+  # Text format
+  if file_extension == '.txt':
+    try:
+      fp_deg = open(file+'/deg.txt', 'r')
+      fp_tol = open(file+'/tol.txt', 'r')
+      fp_X = open(file+'/X.txt', 'r')
+      fp_Y = open(file+'/Y.txt', 'r')
+      try:
+        fp_errs = open(file+'/errors.txt', 'r')
+        errs_isopen = True
+      except:
+        errs_isopen = False
+      isopen = True
+    except:
+      raise IOError, "Could not open file(s) for reading."
+    
+    if isopen:
+      deg = int(fp_deg.read())
+      fp_deg.close()
+      
+      tol = float(fp_tol.read())
+      fp_tol.close()
+      
+      X = []
+      for line in fp_X:
+        X.append( float(line) )
+      X = np.array(X)
+      fp_X.close()
+      
+      Y = []
+      for line in fp_Y:
+        Y.append( float(line) )
+      Y = np.array(Y)
+      fp_Y.close()
+      
+      errors = []
+      if errs_isopen:
+        for line in fp_errs:
+          errors.append( float(line) )
+        errors = np.array(errors)
+        fp_errs.close()
+      
+      _made = True
+  
+  if _made:
+    spline = ReducedOrderSpline()
+    spline._spline = UnivariateSpline(X, Y, k=deg, s=0)
+    spline.X = X
+    spline.Y = Y
+    spline._deg = deg
+    spline.errors = errors
+    spline.tol = tol
+    spline._made = _made
+    return spline
+  else:
+    raise Exception, "Reduced-order spline interpolant could not be constructed from file."
+
 
 
 #################################
