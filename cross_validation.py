@@ -41,9 +41,8 @@ def _Kfold(x, y, K, p_label, partitions, tol=1e-6, rel=False, deg=5):
     sample index where largest validation error occurs
     largest validation error
   """
-  # TODO: Give option to output record all error data, if requested
   
-  # Assemble training data excluding the p_label'th partition for validation
+  # Assemble training data excluding the i_fold'th partition for validation
   # TODO: These next few lines could be implemented more efficiently...
   partitions = np.asarray(partitions)
   complement = np.ones(len(partitions), dtype='bool')
@@ -51,7 +50,7 @@ def _Kfold(x, y, K, p_label, partitions, tol=1e-6, rel=False, deg=5):
   training = np.sort( np.concatenate([ff for ff in partitions[complement]]) )
   validation = partitions[p_label]
 
-  # Form trial training data
+  # Form trial data
   x_training = x[training]
   y_training = y[training]
   
@@ -60,6 +59,7 @@ def _Kfold(x, y, K, p_label, partitions, tol=1e-6, rel=False, deg=5):
   
   # Compute L-infinity errors between training and data in validation partition
   error, arg = Linfty(spline(x[validation]), y[validation], arg=True)
+  
   return validation[arg], error
 
 
@@ -100,7 +100,7 @@ class CrossValidation(object):
     self._tol = tol
     self._rel = rel
     self._deg = deg
-    self._made = False  # A cross-validation study is not yet made
+    self._made = False
   
   
   def Kfold(self, x, y, K=10, parallel=True, random=True):
@@ -131,8 +131,8 @@ class CrossValidation(object):
     If `random` option is False then the partitions are filled with the
     data in sequential order. This is not a good idea for trying to 
     assess interpolation errors because interpolating over large regions
-    of data will likely incur large errors, which is to be expected. 
-    This option may be removed in future romSpline releases.
+    of data will likely incur large errors. This option may be removed in 
+    future romSpline releases.
     """
     
     assert len(x) == len(y), "Expecting input data to have same length."
@@ -150,12 +150,9 @@ class CrossValidation(object):
     else:
       self._partitions = partitions(self._size, self._K)
     
-    # Serial evaluation
     if (parallel is False) or (_parallel is False):
       for ii in range(self._K):
         self.args[ii], self.errors[ii] = _Kfold(x, y, self._K, ii, self._partitions, tol=self._tol, rel=self._rel, deg=self._deg)
-    
-    # Parallel evaluation
     elif _parallel is True:
       # Determine the number of processes to run on
       if parallel is True:
@@ -179,6 +176,35 @@ class CrossValidation(object):
         self.args[ii], self.errors[ii] = ee.result()
     
     self._made = True
+  
+  
+  def LeaveOneOut(self, x, y, parallel=True):
+    """Leave-one-out cross-validation
+    
+    Input
+    -----
+      x        -- samples
+      y        -- data to be downsampled
+      parallel -- parallelize the computation over each partition?
+                  (default True)
+      
+    Attributes
+    ----------
+      args   -- data array indexes of largest validation errors 
+                on each validation set
+      errors -- validation errors on each validation set
+    
+    Comments
+    --------
+    Leave-one-out is the same as K-fold cross-validation where K
+    equals the number of samples.
+    """
+    return self.Kfold(x, y, K=len(x), parallel=parallel, random=False)
+  
+  
+  def LeaveNOut(self, x, y, N, parallel=True):
+    # TODO: Finish me!
+    return self.Kfold(x, y, K=len(x)-N+1, parallel=parallel, random=True)
   
   
   def MonteCarloKfold(self, x, y, n, K=10, parallel=True, random=True, verbose=False):
@@ -229,7 +255,6 @@ class CrossValidation(object):
       self.mc_errors.append( self.errors )
       
       self.mc_mean_errors = map(np.mean, self.mc_errors)
-      self.mc_median_errors = map(np.median, self.mc_errors)
   
   
   def stats(self, lq=0.05, uq=0.95):
