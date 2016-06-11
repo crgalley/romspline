@@ -179,7 +179,9 @@ class ReducedOrderSpline(object):
         errors = np.abs(errors)
     else:
       raise Exception, "No spline interpolant to compare against. Run the greedy method."
-    print "Requested tolerance of {} met: ".format(self._tol), np.all(np.abs(errors) <= self.tol)
+    
+    if verbose:
+      print "Requested tolerance of {} met: ".format(self._tol), np.all(np.abs(errors) <= self.tol)
     
     return errors
   
@@ -353,7 +355,6 @@ class ReducedOrderSpline(object):
     Valid extensions are 'h5', 'hdf5', and 'txt'.
     """
     ans = readSpline(file, group=group)
-    #self._spline, self.X, self.Y, self._deg, self.errors, self.tol = out
     self._spline = ans._spline
     self.X = ans.X
     self.Y = ans.Y
