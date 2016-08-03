@@ -17,23 +17,25 @@ import greedy
 # Random seeds for greedy algorithm  #
 ######################################
 
-def _randomSeeds(x, y, tol=1e-6, rel=False, deg=5):
-  """Build reduced-order splines from a random set of seeds for greedy algorithm.
+def _randomSeeds(x, y, seeds, tol=1e-6, rel=False, deg=5):
+  """Build reduced-order splines from an arbitrary seed for the greedy algorithm.
   See RandomSeeds for further details.
   
   Input
   -----
-    x   -- samples
-    y   -- data to be downsampled
-    tol -- L-infinity error tolerance for reduced-order spline 
-           (default 1e-6)
-    rel -- L-infinity error tolerance is relative to max abs of data?
-           (default False)
-    deg -- degree of interpolating polynomials 
-           (default 5)
+    x     -- samples
+    y     -- data to be downsampled
+    seeds -- list of integers specifying the array indexes of
+             the samples used to seed the greedy algorithm
+    tol   -- L-infinity error tolerance for reduced-order spline 
+             (default 1e-6)
+    rel   -- L-infinity error tolerance is relative to max abs of data?
+             (default False)
+    deg   -- degree of interpolating polynomials 
+             (default 5)
   """
-  # Seeds
-  seeds = np.sort( np.random.choice(range(len(x)), deg+1, replace=False) )
+  # Sort the seeds as a precaution
+  seeds = np.sort(seeds)
   
   # Build spline
   spline = greedy.ReducedOrderSpline(x, y, tol=tol, rel=rel, deg=deg, seeds=seeds)
@@ -132,14 +134,15 @@ class RandomSeeds(object):
     """
     
     # Allocate some memory
-    self.errors = np.zeros(Nseeds, dtype='double')
-    self.sizes = np.zeros(Nseeds, dtype='double')
-    self.seeds = np.zeros((Nseeds, self._deg+1), dtype='double')
-    self.Xs = []
+    self.errors = np.zeros(Nseeds, dtype='double')                # Greedy errors
+    self.sizes = np.zeros(Nseeds, dtype='double')                 # Sizes of each reduced data
+    self.seeds = np.zeros((Nseeds, self._deg+1), dtype='double')  # All seeds
+    self.Xs = []                                                  # Reduced data for each seed
     
     if (parallel is False) or (_parallel is False):
       for nn in range(Nseeds):
-        self.errors[nn], self.sizes[nn], self.seeds[nn], Xs = _randomSeeds(x, y, tol=self._tol, rel=self._rel, deg=self._deg)
+        seeds = np.sort( np.random.choice(range(len(x)), self._deg+1, replace=False) )
+        self.errors[nn], self.sizes[nn], self.seeds[nn], Xs = _randomSeeds(x, y, seeds, tol=self._tol, rel=self._rel, deg=self._deg)
         self.Xs.append(Xs)
     elif _parallel is True:
       # Determine the number of processes to run on
@@ -157,7 +160,8 @@ class RandomSeeds(object):
       # Build reduced-order splines for many random sets of seed points
       output = []
       for nn in range(Nseeds):
-        output.append(executor.submit(_randomSeeds, x, y, tol=self._tol, rel=self._rel, deg=self._deg))
+        seeds = np.sort( np.random.choice(range(len(x)), self._deg+1, replace=False) )
+        output.append(executor.submit(_randomSeeds, x, y, seeds, tol=self._tol, rel=self._rel, deg=self._deg))
       
       # Gather the results as they complete
       for ii, oo in enumerate(as_completed(output)):
