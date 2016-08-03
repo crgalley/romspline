@@ -86,7 +86,10 @@ class ReducedOrderSpline(object):
     #self.tol = self._tol*ymax
     
     # Seed greedy algorithm
-    self._seed = seeds
+    if seeds is None:
+      self._seed = _seed(x, deg=self._deg, seeds=None)[0]
+    else:
+      self._seed = seeds
       
     # Greedy algorithm
     self._spline, self.indices, self.args, self.errors, self.tol = _greedy(x, y, tol=self._tol, rel=self._rel, deg=self._deg, verbose=verbose, seeds=seeds)
