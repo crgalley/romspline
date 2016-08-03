@@ -19,7 +19,7 @@ Alternatively, include the following lines in your Python code:
 
     import sys
     sys.path.append(<path to romSpline>)
-    import romSpline
+    import romspline
 
 
 romSpline requires NumPy, SciPy, and H5py, which come with most Python distributions.
