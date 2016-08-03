@@ -18,7 +18,7 @@ To set up romSpline, download or clone this repository and add the download path
 Alternatively, include the following lines in your Python code:
 
     import sys
-    sys.path.append(<path to romSpline>)
+    sys.path.append(<path to romspline>)
     import romspline
 
 
