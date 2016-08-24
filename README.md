@@ -22,7 +22,11 @@ Alternatively, include the following lines in your Python code:
     import romspline
 
 
-romSpline requires NumPy, SciPy, and H5py, which come with most Python distributions.
+romSpline requires NumPy, SciPy, and H5py, which come with most Python distributions. For parallelization, which is useful for some of the cross-validation routines, romSpline currently uses the concurrent.futures module. If you are using Python 2 and do not have concurrent.futures installed you may install it using pip:
+
+    pip install futures
+
+Future versions of romSpline will not use concurrent.futures.
 
 
 ### Getting started ###
