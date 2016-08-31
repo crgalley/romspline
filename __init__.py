@@ -117,6 +117,7 @@ class _ImportStates(object):
       print "Warning: Parallel computation options will be unavailable."
       self._PARALLEL = False
 
+state = _ImportStates()
 
 
 #####################
