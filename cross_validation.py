@@ -1,15 +1,12 @@
-import numpy as np, matplotlib.pyplot as plt
-from scipy.stats.mstats import mquantiles
+from __init__ import _ImportStates
 
-# Modules for parallelization
-try:
-  from concurrent.futures import ProcessPoolExecutor, wait, as_completed
-  from multiprocessing import cpu_count
-  _parallel = True
-except:
-  print "Cannot import from concurrent.futures and/or multiprocessing modules."
-  _parallel = False
+state = _ImportStates()
+if state._MATPLOTLIB:
+  import matplotlib.pyplot as plt
+if state._PARALLEL:
+  from __init__ import ProcessPoolExecutor, wait, as_completed, cpu_count
 
+import numpy as np
 import greedy
 from helpers import *
 
@@ -19,16 +16,15 @@ from helpers import *
 # K-fold cross validation #
 ###########################
 
-def _Kfold(x, y, K, p_label, partitions, tol=1e-6, rel=False, deg=5):
+def _cross_validation(x, y, validation, training, tol=1e-6, rel=False, deg=5):
   """K-fold cross validation on a given partition
   
   Input
   -----
     x          -- samples
     y          -- data values at samples
-    K          -- number of partitions
-    p_label    -- partition label (counting starts from 0)
-    partitions -- all K partitions of sample labels
+    validation -- validation subset of data indexes
+    training   -- training subset of data indexes
     tol        -- L-infinity error tolerance for reduced-order spline 
                   (default 1e-6)
     rel        -- L-infinity error tolerance is relative to max abs of data?
@@ -40,16 +36,16 @@ def _Kfold(x, y, K, p_label, partitions, tol=1e-6, rel=False, deg=5):
   ------
     sample index where largest validation error occurs
     largest validation error
+  
+  Comment
+  -------
+  The union of the validation and training subsets must contain all the
+  data array indexes.
   """
   
-  # Assemble training data excluding the i_fold'th partition for validation
-  # TODO: These next few lines could be implemented more efficiently...
-  partitions = np.asarray(partitions)
-  complement = np.ones(len(partitions), dtype='bool')
-  complement[p_label] = False
-  training = np.sort( np.concatenate([ff for ff in partitions[complement]]) )
-  validation = partitions[p_label]
-
+  assert len(x) == len(y), "Expecting x and y arrays to have same lengths."
+  assert len(np.hstack([validation, training])) == len(x), "Expecting union of validation and training sets to have same lengths as x and y arrays."
+  
   # Form trial data
   x_training = x[training]
   y_training = y[training]
@@ -58,9 +54,9 @@ def _Kfold(x, y, K, p_label, partitions, tol=1e-6, rel=False, deg=5):
   spline = greedy._greedy(x_training, y_training, tol=tol, rel=rel, deg=deg)[0]
   
   # Compute L-infinity errors between training and data in validation partition
-  error, arg = Linfty(spline(x[validation]), y[validation], arg=True)
+  errors = np.abs(spline(x[validation]) - y[validation])
   
-  return validation[arg], error
+  return errors, np.max(errors), validation[np.argmax(errors)]
 
 
 class CrossValidation(object):
@@ -150,10 +146,13 @@ class CrossValidation(object):
     else:
       self._partitions = partitions(self._size, self._K)
     
-    if (parallel is False) or (_parallel is False):
+    if (parallel is False) or (state._PARALLEL is False):
       for ii in range(self._K):
-        self.args[ii], self.errors[ii] = _Kfold(x, y, self._K, ii, self._partitions, tol=self._tol, rel=self._rel, deg=self._deg)
-    elif _parallel is True:
+        validation, training = partitions_to_sets(ii, self._partitions, sort=True)
+        errors, self.errors[ii], self.args[ii] = _cross_validation(x, y, validation, training, tol=self._tol, rel=self._rel, deg=self._deg)
+    
+    # TODO: Change parallelization to simple Pool processes
+    elif state._PARALLEL is True:
       # Determine the number of processes to run on
       if parallel is True:
         try:
@@ -169,13 +168,73 @@ class CrossValidation(object):
       # Compute the spline errors on each validation partition
       output = []
       for ii in range(self._K):
-        output.append( executor.submit(_Kfold, x, y, self._K, ii, self._partitions, tol=self._tol, rel=self._rel, deg=self._deg) )
+        validation, training = partitions_to_sets(ii, self._partitions, sort=True)
+        output.append( executor.submit(_cross_validation, x, y, validation, training, tol=self._tol, rel=self._rel, deg=self._deg) )
       
-      # Gather the results as they complete
-      for ii, ee in enumerate(as_completed(output)):
-        self.args[ii], self.errors[ii] = ee.result()
+      # Gather the results
+      for ii, ee in enumerate(output):
+        errors, self.errors[ii], self.args[ii] = ee.result()
+    
+    mask = (self.errors >=self._tol)
+    self.args_ge_tol = self.args[mask]
+    self.errors_ge_tol = self.errors[mask]
     
     self._made = True
+  
+  
+  def MonteCarloKfold(self, x, y, n, K=10, parallel=True, random=True, verbose=False):
+    """Perform a number n of K-fold cross-validations
+    
+    Input
+    -----
+      x        -- samples
+      y        -- data to be downsampled
+      n        -- number of times to repeat K-fold cross-validation
+                  with a random distribution of the data into the 
+                  K partitions
+      K        -- number of partitions
+                  (default 10)
+      parallel -- parallelize the computation over each partition?
+                  (default True)
+      random   -- fill the partitions randomly from the data?
+                  (default True)
+      verbose  -- print progress to screen?
+                  (default False)
+    
+    Attributes
+    ----------
+      all_args   -- array of data array indexes of validation errors on each
+                   validation set
+      all_errors -- array of validation errors on each realized validation set
+    
+    Comments
+    --------
+    The default option for `K` is 10 so that a random 10% subset of the 
+    data is used to validate the trial reduced-order splines.
+    
+    If `random` option is False then the partitions are filled with the
+    data in sequential order. This is not a good idea for trying to 
+    assess interpolation errors because interpolating over large regions
+    of data will likely incur large errors. This option may be removed in 
+    future romSpline releases.
+    """
+    
+    # Allocate memory
+    self.all_args = np.zeros((n,K), dtype='int')
+    self.all_errors = np.zeros((n,K), dtype='double')
+    self.all_args_ge_tol = []
+    self.all_errors_ge_tol = []
+    for nn in range(n):
+      
+      if verbose and not (nn+1)%10:
+        print "Trials completed:", nn+1
+      
+      self.Kfold(x, y, K=K, parallel=parallel, random=random)
+      self.all_args[nn] = self.args
+      self.all_errors[nn] = self.errors
+      
+      self.all_args_ge_tol.append( list(self.args[self.errors >= self._tol]) )
+      self.all_errors_ge_tol.append( list(self.errors[self.errors >= self._tol]) )
   
   
   def LeaveOneOut(self, x, y, parallel=True):
@@ -202,167 +261,75 @@ class CrossValidation(object):
     return self.Kfold(x, y, K=len(x), parallel=parallel, random=False)
   
   
-  def LeaveNOut(self, x, y, N, parallel=True):
-    # TODO: Finish me!
-    return self.Kfold(x, y, K=len(x)-N+1, parallel=parallel, random=True)
-  
-  
-  def MonteCarloKfold(self, x, y, n, K=10, parallel=True, random=True, verbose=False):
-    """Perform a number n of K-fold cross-validations
+  def stats(self):
+    """Compute means and medians of each set of validation errors from 
+    a Monte Carlo K-fold cross-validation study. The validation errors
+    considered are those greater than or equal to the reduced-order
+    spline tolerance.
     
-    Input
-    -----
-      x        -- samples
-      y        -- data to be downsampled
-      n        -- number of times to repeat K-fold cross-validation
-                  with a random distribution of the data into the 
-                  K partitions
-      K        -- number of partitions
-                  (default 10)
-      parallel -- parallelize the computation over each partition?
-                  (default True)
-      random   -- fill the partitions randomly from the data?
-                  (default True)
-      verbose  -- print progress to screen?
-                  (default False)
-    
-    Attributes
-    ----------
-      mc_args   -- array of data array indexes of validation errors on each
-                   validation set
-      mc_errors -- array of validation errors on each realized validation set
+    Attributes Made
+    ---------------
+      means_all_errors_ge_tol   -- means of each set of validation errors
+                                   that are greater than or equal to the
+                                   reduced-order spline tolerance
+      medians_all_errors_ge_tol -- medians of each set of validation errors
+                                   that are greater than or equal to the
+                                   reduced-order spline tolerance
     
     Comments
     --------
-    The default option for `K` is 10 so that a random 10% subset of the 
-    data is used to validate the trial reduced-order splines.
-    
-    If `random` option is False then the partitions are filled with the
-    data in sequential order. This is not a good idea for trying to 
-    assess interpolation errors because interpolating over large regions
-    of data will likely incur large errors. This option may be removed in 
-    future romSpline releases.
-    """
-    
-    self.mc_args, self.mc_errors = [], []
-    for nn in range(n):
-      
-      if verbose and not (nn+1)%10:
-        print "Trials completed:", nn+1
-      
-      self.Kfold(x, y, K=K, parallel=parallel, random=random)
-      self.mc_args.append( self.args )
-      self.mc_errors.append( self.errors )
-      
-      self.mc_mean_errors = map(np.mean, self.mc_errors)
-  
-  
-  def stats(self, lq=0.05, uq=0.95):
-    """Compute mean, median, and two quantiles of ensemble of mean errors
-    
-    Input
-    -----
-      lq  -- low quantile (< 0.5)
-             (default 0.05)
-      uq  -- upper quantile (> 0.5)
-             (default 0.95)
-    
-    Attributes
-    ----------
-      mc_mean           -- mean of ensemble of mean errors
-      mc_std            -- sample standard deviation of ensemble of mean errors
-      mc_lower_quantile -- lower quantile of ensemble of mean errors
-      mc_upper_quantile -- upper quantile of ensemble of mean errors
-      mc_median         -- median of ensemble of mean errors
+    A single trial of a Monte Carlo K-fold cross-validation study produces
+    K validation errors, which are the largest absolute errors in each 
+    of the K subsets. Of these K validation errors, only those greater than
+    or equal to the tolerance used to build the reduced-order spline are
+    used to compute the means and medians here. Each mean and median is
+    computed for each of the Monte Carlo trials so that 100 trials yields
+    100 such means and medians.
     """
     
     # Mean of error means and sample standard deviation
-    self.mc_mean = np.mean(self.mc_mean_errors)
-    self.mc_std = np.std(self.mc_mean_errors, ddof=1)
+    _means = []
+    _medians = []
+    for ee in self.all_errors_ge_tol:
+      if ee != []:
+        _means.append( np.mean(ee) )
+        _medians.append( np.median(ee) )
+    
+    self.means_all_errors_ge_tol = _means
+    self.medians_all_errors_ge_tol = _medians
     
     # Specific quantiles of error means
-    self.mc_lower_quantile, self.mc_median, self.mc_upper_quantile = mquantiles(self.mc_mean_errors, prob=[lq, 0.5, uq])
+    #self.mc_lower_quantile, self.mc_median, self.mc_upper_quantile = mquantiles(self.mc_mean_errors, prob=[lq, 0.5, uq])
   
   
-  def plot_mc_errors(self, lq=0.05, uq=0.95, n=20, ax=None, show=True):
-    """Plot a histogram of the mean validation errors from 
-    a Monte Carlo K-fold cross-validation study
-    
-    Input
-    -----
-      lq   -- low quantile (< 0.5)
-              (default 0.05)
-      uq   -- upper quantile (> 0.5)
-              (default 0.95)
-      n    -- number of histogram bins
-              (default 20)
-      ax   -- matplotlib plot/axis object
-              (default None)
-      show -- display the plot?
-              (default True)
-    
-    Output
-    ------
-      If show=True then the plot is displayed.
-      Otherwise, the matplotlib plot/axis object is output.
-    """
-    
-    if self._made:
-      if ax is None:
-        fig, ax = plt.subplots(nrows=1, ncols=1)
-      
-      # Compute statistics of MonteCarloKfold output
-      self.stats(lq=lq, uq=uq)
-      
-      # Plot histogram of mean errors
-      ax.hist(np.log10(self.mc_mean_errors), n, color='k', alpha=0.33)
-      
-      # Plot mean (blue) and median (red) of mean errors
-      ax.axvline(np.log10(self.mc_mean), 0, 1, color='b', label='Mean')
-      ax.axvline(np.log10(self.mc_median), 0, 1, color='r', label='Median')
-      
-      # Plot lq and uq quantiles (dashed red)
-      ax.axvline(np.log10(self.mc_upper_quantile), 0, 1, color='r', linestyle='--', label=str(int(uq*100))+'th quantile')
-      ax.axvline(np.log10(self.mc_lower_quantile), 0, 1, color='r', linestyle='--', label=str(int(lq*100))+'th quantile')
-      
-      ax.set_xlim(np.log10(0.95*np.min(self.mc_mean_errors)), np.log10(1.05*np.max(self.mc_mean_errors)))
-      ax.set_xlabel('Mean spline errors')
-      ax.legend(loc='upper right', prop={'size':10})
-      
-      if show:  # Display the plot
-        plt.show()
-      else:     # Otherwise, return plot objects for editing the plot in the future
-        if ax is None:
-          return fig, ax
-        else:
-          return ax
-      
-    else:
-      print "No data to plot. Run `MonteCarloKfold` method."
-      
-  
-  def plot_partition_errors(self, ax=None, show=True):
+  def plot_partition_errors(self, ax=None, show=True, color='k', marker='o', linestyle='-'):
     """Plot the largest interpolation error for each validation
     partition from a K-fold cross-validation study
     
     Input
     -----
-      ax   -- matplotlib plot/axis object
-              (default None)
-      show -- display the plot?
-              (default True)
+      ax        -- matplotlib plot/axis object
+                   (default None)
+      show      -- display the plot?
+                   (default True)
+      color     -- data color
+                   (default 'k')
+      marker    -- data marker style
+                   (default 'o')
+      linestyle -- data line style
+                   (default '-')
     
     Output
     ------
       If show=True then the plot is displayed.
       Otherwise, the matplotlib plot/axis object is output.
     """
-    if self._made:
+    if self._made and state._MATPLOTLIB:
       if ax is None:
         fig, ax = plt.subplots(nrows=1, ncols=1)
       
       x_plot = range(len(self._partitions))
-      ax.plot(x_plot, self.errors, 'ko-')
+      ax.plot(x_plot, self.errors, color=color, marker=marker, linestyle=linestyle)
       
       ax.set_xlabel('Partition')
       ax.set_ylabel('Validation error')
@@ -377,49 +344,62 @@ class CrossValidation(object):
           return ax
       
     else:
-      print "No data to plot. Run `Kfold` method."
+      print "No data attributes to plot."
   
   
-  def plot_args_errors(self, x=None, axes='plot', ax=None, show=True):
+  def plot_monte_carlo_errors(self, x=None, n=20, axes='plot', ax=None, show=True, color='k', marker='.'):
     """Plot all the Monte Carlo K-fold cross-validation errors
     versus the samples at which the error is recorded 
     in each of the validation partitions.
     
     Input
     -----
-      x    -- samples
-              (default None)
-      axes -- axis scales for plotting
-              (default 'plot')
-      ax   -- matplotlib plot/axis object
-              (default None)
-      show -- display the plot?
-              (default True)
+      x      -- samples
+                (default None)
+      n      -- number of bins if plotting a histogram
+      axes   -- axis scales for plotting
+                (default 'plot')
+      ax     -- matplotlib plot/axis object
+                (default None)
+      show   -- display the plot?
+                (default True)
+      color  -- data color
+                (default 'k')
+      marker -- data marker style
+                (default '.')
     """
     
-    if self._made:
+    if self._made and state._MATPLOTLIB:
+      
+      self.stats()
+      
       if ax is None:
         fig, ax = plt.subplots(nrows=1, ncols=1)
       
-      # Flatten mc_args and mc_errors arrays
+      # Flatten args and errors arrays
       # generated from MonteCarloKFold method
-      args = np.asarray(self.mc_args).flatten()
-      errors = np.asarray(self.mc_errors).flatten()
+      args = np.asarray(self.all_args).flatten()
+      errors = np.asarray(self.all_errors).flatten()
       
-      if x is None:
-        xplot = args
-        ax.set_xlabel('Data array indexes')
-      else:
-        xplot = x[args]
-        ax.set_xlabel('$x$')
+      # Set up x-data if not plotting a histogram
+      if axes != 'hist':
+        ax.set_ylabel('Validation errors')
+        if x is None:
+          xplot = args
+          ax.set_xlabel('Data array indexes')
+        else:
+          xplot = x[args]
+          ax.set_xlabel('$x$')
       
       if axes == 'semilogy':
-        ax.semilogy(xplot, errors, 'k.')
+        ax.semilogy(xplot, errors, color=color, marker=marker, linestyle='')
       elif axes == 'plot':
-        ax.plot(xplot, errors, 'k.')
+        ax.plot(xplot, errors, color=color, marker=marker, linestyle='')
         ax.ticklabel_format(axis='y', style='sci', scilimits=(0,0))
-        
-      ax.set_ylabel('Validation errors')
+      elif axes == 'hist':
+        ax.hist(np.log10(errors), n, alpha=0.3, color=color)
+        ax.set_xlabel('$\\log_{10}$(Validation errors)')
+        ax.set_ylabel('Occurrence')
       
       if show:  # Display the plot
         plt.show()
@@ -430,6 +410,6 @@ class CrossValidation(object):
           return ax
       
     else:
-      print "No data to plot. Run Kfold."
+      print "No data attributes to plot."
 
 
