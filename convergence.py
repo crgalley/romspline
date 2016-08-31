@@ -1,6 +1,5 @@
-from __init__ import _ImportStates
+from __init__ import state
 
-state = _ImportStates()
 if state._MATPLOTLIB:
   import matplotlib.pyplot as plt
 
