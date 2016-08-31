@@ -1,3 +1,4 @@
+from __init__ import _ImportStates
 import numpy as np
 
 
@@ -46,6 +47,33 @@ def random_partitions(n, K):
   
   # Split into K (nearly) equal partitions
   return [np.sort(rand[pp]) for pp in partitions(n, K)]
+
+
+def partitions_to_sets(p_label, partitions, sort=True):
+  """Split partitions into a validation set (indexed by p_label)
+  and the rest into a training set
+  
+  Input
+  -----
+    p_label    -- index of partition to use
+                  as a validation set
+    partitions -- set of partitions containing
+                  array indices for validation
+                  and training (see K-fold cross-validation)
+    sort       -- sort the training set?
+                  (default True)
+  """
+  # Validation set
+  validation = partitions[p_label]
+  
+  # Assemble training set from remaining partitions
+  training = []
+  for ii, pp in enumerate(partitions):
+    if ii != p_label:
+      training = np.hstack([training, pp])
+  training = np.sort(training)
+  
+  return  validation, np.asarray(training, dtype='int')
 
 
 def Linfty(y1, y2, arg=False):
@@ -148,6 +176,74 @@ def overlap(x, y1, y2, weight=None, partial=False):
   norm2 = integrate(np.abs(y2)**2, x, weight=weight)**0.5
   
   return np.real( integrate(np.conjugate(y1)*y2/norm1/norm2, x, weight=weight, partial=partial) )
+
+
+def conditional_median(x, y, k=0):
+  """Compute the median of y conditioned on x.
+  
+  Input
+  -----
+    x -- samples
+    y -- distributed values, possibly at same x samples
+    k -- number of nearest neighbors to condition the median on
+         (default 0)
+  
+  Output
+  ------
+    x_unique  -- number of unique samples
+    y_medians -- conditional median for each unique sample
+  
+  Comments
+  --------
+  When k is not zero then the median is conditioned on the 
+  k nearest neighbors for each sample value. A non-zero k
+  should be used when there are at most one y values specified
+  for each sample.
+  """
+  
+  assert len(x) == len(y), "Expecting arrays x and y to have the same length."
+  
+  x_unique = np.unique(x)
+  x_args = np.arange(len(x))
+  
+  isort = np.argsort(x)
+  y_sorted = y[isort]
+  
+  y_medians = np.zeros(len(x_unique), dtype='double')
+  
+  for ii in range(len(x_unique)):
+    
+    # Find the k nearest neighbors to xx
+    mask = (abs(ii-x_args) <= k)
+    
+    # Compute the median of the y values for the k nearest neighbors
+    y_medians[ii] = np.median(y_sorted[mask])
+  
+  return x_unique, y_medians
+  
+
+def conditional_mean(x, y, k=0):
+  """Compute the mean of y conditioned on x."""
+  
+  assert len(x) == len(y), "Expecting arrays x and y to have the same length."
+  
+  x_unique = np.unique(x)
+  x_args = np.arange(len(x))
+  
+  isort = np.argsort(x)
+  y_sorted = y[isort]
+  
+  y_means = np.zeros(len(x_unique), dtype='double')
+  
+  for ii in range(len(x_unique)):
+    
+    # Find the k nearest neighbors to xx
+    mask = (abs(ii-x_args) <= k)
+    
+    # Compute the median of the y values for the k nearest neighbors
+    y_means[ii] = np.mean(y_sorted[mask])
+  
+  return x_unique, y_means
 
 
 def total_compression_from_sizes(full_sizes, reduced_sizes):
