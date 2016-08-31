@@ -3,9 +3,8 @@ Test the reduced-order spline greedy algorithm outputs with
 previously generated data to make sure the code still works correctly.
 """
 
-from __init__ import _ImportStates
+from __init__ import state
 
-state = _ImportStates()
 if state._H5PY:
   import h5py
 
