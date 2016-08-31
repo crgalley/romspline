@@ -50,143 +50,85 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+
+############################
+# Class for storing states #
+#    of module imports     #
+############################
+
+class _ImportStates(object):
+  """Class container for state of module imports."""
+  
+  def __init__(self):
+    # Try importing numpy module
+    try:
+      import numpy as np
+    except:
+      # Raise an exception if numpy can't be imported
+      raise Exception, "Error: Cannot import `NumPy` module."
+    
+    # Try importing scipy.interpolate.UnivariateSpline class
+    try:
+      from scipy.interpolate import UnivariateSpline
+    except:
+      # Raise an exception if UnivariateSpline can't be imported
+      # This class is crucial to RomSpline
+      raise Exception, "Error: Cannot import `scipy.interpolate.UnivariateSpline` class."
+      
+    # Try importing h5py module
+    try:
+      import h5py
+      self._H5PY = True
+    except:
+      print "Warning: Cannot import `h5py` module. File I/O features will be limited to text formats."
+      self._H5py = False
+    
+    # Try importing matplotlib module
+    try:
+      import matplotlib.pyplot as plt
+      self._MATPLOTLIB = True
+    except:
+      print "Warning: Cannot import `matplotlib.pyplot` module."
+      self._MATPLOTLIB = False
+    
+    # Try importing futures module
+    try:
+      from concurrent.futures import ProcessPoolExecutor, wait, as_completed
+      self._FUTURES = True
+    except:
+      print "Warning: Cannot import `futures` module. Try running `pip install futures` to install."
+      self._FUTURES = False
+    
+    # Try importing multiprocessing module
+    try:
+      from multiprocessing import cpu_count
+      self._MP = True
+    except:
+      print "Warning: Cannot import `multiprocessing` module."
+      self._MP = False
+    
+    # If can import both futures and multiprocessing modules 
+    # then can do parallelization
+    # TODO: I should just use a simple Pool process so there's not
+    #       an extra dependency on concurrent.futures...
+    if self._FUTURES and self._MP:
+      self._PARALLEL = True
+    else:
+      print "Warning: Parallel computation options will be unavailable."
+      self._PARALLEL = False
+
+
+
+#####################
+# Import submodules #
+#####################
+
 from greedy import *            # For building reduced-order splines
 from convergence import *       # For studying convergence
 from random_seeds import *      # For studying the effect of seed points on reduced data sizes
 from cross_validation import *  # For estimating (global) interpolation errors
 from build_spline import *      # Convenience module for bulding reduced-order spline
                                 # with a global interpolation error estimate from cross-validation
-
-
-
-################################
-#   Class for generating some  #
-#   test data for showing how  #
-#    to use the code in the    #
-#   Jupyter/IPython notebooks  #
-################################
-
-class TestData(object):
-  """Generate the test data used as in example IPython notebooks 
-    for demonstrating the construction, properties, and errors 
-    of a reduced-order spline interpolant.
-  """
-  
-  def __init__(self, num=4001, noise=0., uv=0.):
-    """Create a TestData object.
-    
-    Input
-    -----
-      num   -- number of samples to evaluate the function
-               in domain [-1,1]
-      noise -- amplitude of stochastic fluctuations added
-               to smooth function values
-               (default is 0.)
-      uv    -- amplitude of high-frequency (i.e., ultra-violet)
-               features added to smooth function values
-               (default is 0.)
-    
-    Attributes
-    ----------
-      x -- samples
-      y -- values of sampled function
-    
-    """
-    
-    # Generate test data
-    self.x = np.linspace(-1, 1, num)
-    self.y = self.f(self.x, noise=noise, uv=uv)
-  
-  
-  def f(self, x, noise=0., uv=0.):
-    """Function to sample for reduced-order spline examples
-    
-    Inputs
-    ------
-      x     -- values to sample the (smooth) function
-      noise -- amplitude of stochastic fluctuations added
-               to smooth function values
-               (default is 0.)
-      uv    -- amplitude of high-frequency (i.e., ultra-violet)
-               features added to smooth function values
-               (default is 0.)
-    
-    Output
-    ------
-      sampled function values
-    
-    Comments
-    --------
-    The function being evaluated is
-    
-      f(x) = 100.*( (1.+x) * sin(5.*(x-0.2)**2) 
-                    + exp(-(x-0.5)**2/2./0.01) * sin(100*x) 
-                  )
-    """
-    
-    # Validate inputs
-    x = np.asarray(x)
-    
-    # Return smooth function values
-    ans = 100.*( (x+1.)*np.sin(5.*(x-0.2)**2) + np.exp(-(x-0.5)**2/2./0.01)*np.sin(100*x) )
-    
-    # Return smooth function values with high-frequency (UV) features
-    if uv != 0.:
-      assert type(uv) in [float, int], "Expecting integer or float type."
-      ans += float(uv)*self.uv(x)
-    
-    # Return smooth function values with stochastic noise
-    if noise != 0.:
-      assert type(noise) in [float, int], "Expecting integer or float type."
-      ans += float(noise)*np.random.randn(len(x))
-    
-    return ans
-  
-  
-  def dfdx(self, x):
-    """Analytic derivative of f
-    
-    Inputs
-    ------
-      x -- values to sample the derivative of 
-           the function f(x) (see self.f method)
-    
-    Outputs
-    -------
-      ans -- values of analytically calculated 
-             derivative of the function
-    
-    """
-    x = np.asarray(x)
-    
-    a = 10.*(-0.2+x)*(1.+x)*np.cos(5.*(-0.2 + x)**2)
-    b = 100.*np.exp(-50.*(-0.5+x)**2)*np.cos(100.*x)
-    c = np.sin(5.*(-0.2+x)**2)
-    d = -100.*np.exp(-50.*(-0.5+x)**2)*(-0.5+x)*np.sin(100.*x)
-    
-    ans = 100.*(a+b+c+d)
-    
-    return ans
-  
-  
-  def uv(self, x, width=20):
-    """Generate high-frequency oscillations
-    
-    Inputs
-    ------
-      x     -- values to sample the high-frequency
-               oscillations
-      width -- number of samples corresponding to
-               the period of the high-frequency
-               oscillations
-               (default is 20)
-    
-    Outputs
-    -------
-      array of high-frequency oscillating values
-    
-    """
-    X = x[width] - x[0]
-    return np.sin(len(x)/X * x)
-
+from example import *         # Built-in function for testing and demonstration purposes
+from regression import *        # Regression testing
 
