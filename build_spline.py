@@ -1,5 +1,12 @@
-import numpy as np, matplotlib.pyplot as plt
+from __init__ import _ImportStates
+
+state = _ImportStates()
+if state._MATPLOTLIB:
+  import matplotlib.pyplot as plt
+
+import numpy as np
 import greedy, random_seeds, cross_validation
+
 
 
 def build_spline(x, y, tol=1e-6, deg=None, rel=False, seeds=None, small=True, cv=True, K=10, parallel=True, verbose=True):
