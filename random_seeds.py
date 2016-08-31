@@ -1,14 +1,13 @@
-import numpy as np, matplotlib.pyplot as plt
+from __init__ import _ImportStates
 
-# Modules for parallelization
-try:
+state = _ImportStates()
+if state._MATPLOTLIB:
+  import matplotlib.pyplot as plt
+if state._PARALLEL:
   from concurrent.futures import ProcessPoolExecutor, wait, as_completed
   from multiprocessing import cpu_count
-  _parallel = True
-except:
-  print "Cannot import from concurrent.futures and/or multiprocessing modules."
-  _parallel = False
 
+import numpy as np
 import greedy
 
 
@@ -139,12 +138,12 @@ class RandomSeeds(object):
     self.seeds = np.zeros((Nseeds, self._deg+1), dtype='double')  # All seeds
     self.Xs = []                                                  # Reduced data for each seed
     
-    if (parallel is False) or (_parallel is False):
+    if (parallel is False) or (state._PARALLEL is False):
       for nn in range(Nseeds):
         seeds = np.sort( np.random.choice(range(len(x)), self._deg+1, replace=False) )
         self.errors[nn], self.sizes[nn], self.seeds[nn], Xs = _randomSeeds(x, y, seeds, tol=self._tol, rel=self._rel, deg=self._deg)
         self.Xs.append(Xs)
-    elif _parallel is True:
+    elif state._PARALLEL is True:
       # Determine the number of processes to run on
       if parallel is True:
         try:
@@ -164,7 +163,8 @@ class RandomSeeds(object):
         output.append(executor.submit(_randomSeeds, x, y, seeds, tol=self._tol, rel=self._rel, deg=self._deg))
       
       # Gather the results as they complete
-      for ii, oo in enumerate(as_completed(output)):
+      #for ii, oo in enumerate(as_completed(output)):
+      for ii, oo in enumerate(output):
         self.errors[ii], self.sizes[ii], self.seeds[ii], Xs = oo.result()
         self.Xs.append(Xs)
     
@@ -294,10 +294,17 @@ def small_spline(x, y, num, tol=1e-6, deg=None, rel=False, parallel=True, verbos
   addition to the random sets of initial seeds.
   """
   
-  if deg is None:
+  if deg is None:                  # Use all integers in [1,5]
     degs = range(1, 6)
   else:
-    degs = [deg]
+    if len(np.shape(deg)) == 1:    # deg is a list or array
+      degs = deg
+    elif len(np.shape(deg)) == 0:  # deg is a number
+      degs = [deg]
+    else:
+      raise Exception, "Input for `deg` option not recognized."
+  for dd in degs:
+    assert (dd in range(1,6)), "Expecting degree(s) to be one or more integers in [1,5]."
   
   size = len(x)+1  # Add 1 to guarantee that a smaller size will be found below
   
