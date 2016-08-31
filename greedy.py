@@ -288,10 +288,13 @@ class ReducedOrderSpline(object):
     the reduced order spline data.
     """
     
-    if state._H5PY:
-      # If file is an HDF5 file or group descriptor...
-      if file.__class__ in [h5py._hl.files.File, h5py._hl.group.Group]:
-        self._write(file, slim=slim)
+    if not state._H5PY:
+      print "h5py module not imported. Try writing data to text (.txt) format."
+      return
+    
+    # If file is an HDF5 file or group descriptor...
+    if file.__class__ in [h5py._hl.files.File, h5py._hl.group.Group]:
+      self._write(file, slim=slim)
     
     # If file is a file name...
     elif type(file) is str:
