@@ -6,7 +6,7 @@ if state._MATPLOTLIB:
 if state._H5PY:
   import h5py
 
-import numpy as np
+import numpy as np, os
 from scipy.interpolate import UnivariateSpline
 
 
