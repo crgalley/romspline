@@ -487,6 +487,8 @@ def readSpline(file, group=None):
     spline._deg = deg
     spline.errors = errors
     spline.tol = tol
+    spline.size = len(X)
+    spline.compression = None
     spline._made = _made
     return spline
   else:
