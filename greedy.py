@@ -1,4 +1,12 @@
-import numpy as np, matplotlib.pyplot as plt, h5py, os
+from __init__ import _ImportStates
+
+state = _ImportStates()
+if state._MATPLOTLIB:
+  import matplotlib.pyplot as plt
+if state._H5PY:
+  import h5py
+
+import numpy as np
 from scipy.interpolate import UnivariateSpline
 
 
@@ -211,37 +219,42 @@ class ReducedOrderSpline(object):
       Otherwise, the matplotlib plot/axis object is output.
     """
     
-    if self._made:  # Check if spline data made
-      if ax is None:
-        fig, ax = plt.subplots(nrows=1, ncols=1)
+    if state._MATPLOTLIB:
       
-      data = self.errors
-      if rel:
-        data *= self._tol / self.tol
-      
-      # Select the axes upon which to plot the greedy errors
-      if axes == 'semilogy':
-        ax.semilogy(np.arange(1, len(data)+1), data, 'k-')
-      elif axes == 'semilogx':
-        ax.semilogx(np.arange(1, len(data)+1), data, 'k-')
-      elif axes == 'loglog':
-        ax.loglog(np.arange(1, len(data)+1), data, 'k-')
-      elif axes == 'plot':
-        ax.plot(np.arange(1, len(data)+1), data, 'k-')
-      
-      ax.set_xlabel(xlabel)
-      ax.set_ylabel(ylabel)
-      
-      if show:  # Display the plot
-        plt.show()  
-      else:     # Otherwise, return plot objects for editing the plot in the future
+      if self._made:  # Check if spline data made
         if ax is None:
-          return fig, ax
-        else:
-          return ax
-      
+          fig, ax = plt.subplots(nrows=1, ncols=1)
+        
+        data = self.errors
+        if rel:
+          data *= self._tol / self.tol
+        
+        # Select the axes upon which to plot the greedy errors
+        if axes == 'semilogy':
+          ax.semilogy(np.arange(1, len(data)+1), data, 'k-')
+        elif axes == 'semilogx':
+          ax.semilogx(np.arange(1, len(data)+1), data, 'k-')
+        elif axes == 'loglog':
+          ax.loglog(np.arange(1, len(data)+1), data, 'k-')
+        elif axes == 'plot':
+          ax.plot(np.arange(1, len(data)+1), data, 'k-')
+        
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        
+        if show:  # Display the plot
+          plt.show()  
+        else:     # Otherwise, return plot objects for editing the plot in the future
+          if ax is None:
+            return fig, ax
+          else:
+            return ax
+        
+      else:
+        print "No data to plot. Run `greedy` method."
+    
     else:
-      print "No data to plot. Run `greedy` method."
+      print "Error: matplotlib.pyplot module not imported."
   
   
   def write(self, file, slim=False):
@@ -275,9 +288,10 @@ class ReducedOrderSpline(object):
     the reduced order spline data.
     """
     
-    # If file is an HDF5 file or group descriptor...
-    if file.__class__ in [h5py._hl.files.File, h5py._hl.group.Group]:
-      self._write(file, slim=slim)
+    if state._H5PY:
+      # If file is an HDF5 file or group descriptor...
+      if file.__class__ in [h5py._hl.files.File, h5py._hl.group.Group]:
+        self._write(file, slim=slim)
     
     # If file is a file name...
     elif type(file) is str:
@@ -288,14 +302,18 @@ class ReducedOrderSpline(object):
       
       # HDF5 format
       if file_extension == '.h5' or file_extension == '.hdf5':
-        try:
-          fp = h5py.File(file, 'w')
-          isopen = True
-        except:
-          raise Exception, "Could not open file for writing."
-        if isopen:
-          self._write(fp, slim=slim)
-          fp.close()
+        if state._H5PY:
+          try:
+            fp = h5py.File(file, 'w')
+            isopen = True
+          except:
+            raise Exception, "Could not open file for writing."
+          if isopen:
+            self._write(fp, slim=slim)
+            fp.close()
+        else:
+          print "Error: h5py module is not imported. Try writing data to text (.txt) format."
+          return
       
       # Text format
       if file_extension == '.txt':
@@ -392,23 +410,27 @@ def readSpline(file, group=None):
   
   # HDF5 format
   if file_extension == '.h5' or file_extension == '.hdf5':
-    try:
-      fp = h5py.File(file, 'r')
-      isopen = True
-    except:
-      raise Exception, "Could not open file for reading."
-    if isopen:
-      gp = fp[group] if group else fp
-      deg = gp['deg'][()]
-      tol = gp['tol'][()]
-      X = gp['X'][:]
-      Y = gp['Y'][:]
-      if hasattr(gp, 'errors') or 'errors' in gp.keys():
-        errors = gp['errors'][:]
-      else:
-        errors = []
-      fp.close()
-      _made = True
+    if state._H5PY:
+      try:
+        fp = h5py.File(file, 'r')
+        isopen = True
+      except:
+        raise Exception, "Could not open file for reading."
+      if isopen:
+        gp = fp[group] if group else fp
+        deg = gp['deg'][()]
+        tol = gp['tol'][()]
+        X = gp['X'][:]
+        Y = gp['Y'][:]
+        if hasattr(gp, 'errors') or 'errors' in gp.keys():
+          errors = gp['errors'][:]
+        else:
+          errors = []
+        fp.close()
+        _made = True
+    else:
+      print "Error: h5py module is not imported."
+      return
   
   # Text format
   if file_extension == '.txt':
@@ -494,6 +516,7 @@ def _seed(x, deg=5, seeds=None):
   instead.
   """
   if seeds is None:
+    # TODO: Check that these are actually equally spaced...
     f = lambda m, n: [ii*n//m + n//(2*m) for ii in range(m)]
     indices = np.sort(np.hstack([[0, len(x)-1], f(deg-1, len(x))]))
   else:
