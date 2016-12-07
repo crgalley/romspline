@@ -23,7 +23,12 @@ romSpline.
 If you find this code useful for your publication work then please
 cite the code repository (www.bitbucket.org/chadgalley/romSpline)
 and the corresponding paper that discusses and characterizes the
-reduced-order spline method (available soon).
+reduced-order spline method (available at https://arxiv.org/abs/1611.07529):
+
+Chad R. Galley and Patricia Schmidt
+"Fast and efficient evaluation of gravitational waveforms via reduced-order spline interpolation"
+[arxiv: 1611.07529] (2016)
+(Submitted to a journal for publication consideration)
 
 """
 
@@ -81,7 +86,7 @@ class _ImportStates(object):
       self._H5PY = True
     except:
       print "Warning: Cannot import `h5py` module. File I/O features will be limited to text formats."
-      self._H5py = False
+      self._H5PY = False
     
     # Try importing matplotlib module
     try:
