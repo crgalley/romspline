@@ -28,7 +28,6 @@ reduced-order spline method (available at https://arxiv.org/abs/1611.07529):
 Chad R. Galley and Patricia Schmidt
 "Fast and efficient evaluation of gravitational waveforms via reduced-order spline interpolation"
 [arxiv: 1611.07529] (2016)
-(Submitted to a journal for publication consideration)
 
 """
 
