@@ -1,5 +1,5 @@
 """romSpline
-   =========
+=========
 
 romSpline is an easy-to-use code for generating a reduced-order spline 
 interpolant of 1d data.
