@@ -178,15 +178,18 @@ def overlap(x, y1, y2, weight=None, partial=False):
   return np.real( integrate(np.conjugate(y1)*y2/norm1/norm2, x, weight=weight, partial=partial) )
 
 
-def conditional_median(x, y, k=0):
+def conditional_median(x, y, k=0, repeat=0):
   """Compute the median of y conditioned on x.
   
   Input
   -----
-    x -- samples
-    y -- distributed values, possibly at same x samples
-    k -- number of nearest neighbors to condition the median on
-         (default 0)
+    x      -- samples
+    y      -- distributed values, possibly at same x samples
+    k      -- number of nearest neighbors to condition the median on
+              (default 0)
+    repeat -- iterates the result of conditional_median a "repeat"
+              number of times
+              (default 0)
   
   Output
   ------
@@ -211,19 +214,45 @@ def conditional_median(x, y, k=0):
   
   y_medians = np.zeros(len(x_unique), dtype='double')
   
-  for ii in range(len(x_unique)):
+  for rr in range(repeat+1):
+    for ii in range(len(x_unique)):
+      
+      # Find the k nearest neighbors to xx
+      mask = (abs(ii-x_args) <= k)
+      
+      # Compute the median of the y values for the k nearest neighbors
+      y_medians[ii] = np.median(y_sorted[mask])
     
-    # Find the k nearest neighbors to xx
-    mask = (abs(ii-x_args) <= k)
-    
-    # Compute the median of the y values for the k nearest neighbors
-    y_medians[ii] = np.median(y_sorted[mask])
+    y_sorted = y_medians
   
   return x_unique, y_medians
   
 
-def conditional_mean(x, y, k=0):
-  """Compute the mean of y conditioned on x."""
+def conditional_mean(x, y, k=0, repeat=0):
+  """Compute the mean of y conditioned on x.
+  
+  Input
+  -----
+    x      -- samples
+    y      -- distributed values, possibly at same x samples
+    k      -- number of nearest neighbors to condition the mean on
+              (default 0)
+    repeat -- iterates the result of conditional_mean a "repeat"
+              number of times
+              (default 0)
+  
+  Output
+  ------
+    x_unique  -- number of unique samples
+    y_medians -- conditional mean for each unique sample
+  
+  Comments
+  --------
+  When k is not zero then the mean is conditioned on the 
+  k nearest neighbors for each sample value. A non-zero k
+  should be used when there are at most one y values specified
+  for each sample.
+  """
   
   assert len(x) == len(y), "Expecting arrays x and y to have the same length."
   
@@ -235,13 +264,16 @@ def conditional_mean(x, y, k=0):
   
   y_means = np.zeros(len(x_unique), dtype='double')
   
-  for ii in range(len(x_unique)):
-    
-    # Find the k nearest neighbors to xx
-    mask = (abs(ii-x_args) <= k)
-    
-    # Compute the median of the y values for the k nearest neighbors
-    y_means[ii] = np.mean(y_sorted[mask])
+  for rr in range(repeat+1):
+    for ii in range(len(x_unique)):
+      
+      # Find the k nearest neighbors to xx
+      mask = (abs(ii-x_args) <= k)
+      
+      # Compute the median of the y values for the k nearest neighbors
+      y_means[ii] = np.mean(y_sorted[mask])
+     
+    y_sorted = y_means
   
   return x_unique, y_means
 
