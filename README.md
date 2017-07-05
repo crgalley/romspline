@@ -10,9 +10,12 @@ This code should be useful for downsampling or compressing large data arrays to 
 
 Future releases of romSpline will provide locally adapted interpolation error estimations based on more refined cross-validation studies. In addition, enhancements to the greedy algorithm will incorporate possible additional information about data quality (such as uncertainties in the data values being compressed and interpolated, if available).
 
-If you use this code for academic work then please cite the following paper describing the algorithm and method:
+If you use this code for academic work then please cite the following paper describing the method and algorithm:
 
-    C. R. Galley and P. Schmidt, "Fast and efficient evaluation of gravitational waveforms via reduced-order spline interpolation" [arXiv:1611.07529](https://arxiv.org/abs/1611.07529)
+* C. R. Galley and P. Schmidt, 
+"Fast and efficient evaluation of gravitational waveforms via reduced-order spline interpolation" 
+[arXiv:1611.07529](https://arxiv.org/abs/1611.07529)
+
 
 ### Installation ###
 
