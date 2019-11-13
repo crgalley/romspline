@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from __init__ import state
 
 if state._MATPLOTLIB:
@@ -226,7 +228,7 @@ class CrossValidation(object):
     for nn in range(n):
       
       if verbose and not (nn+1)%10:
-        print "Trials completed:", nn+1
+        print("Trials completed:", nn+1)
       
       self.Kfold(x, y, K=K, parallel=parallel, random=random)
       self.all_args[nn] = self.args
@@ -343,7 +345,7 @@ class CrossValidation(object):
           return ax
       
     else:
-      print "No data attributes to plot."
+      print("No data attributes to plot.")
   
   
   def plot_monte_carlo_errors(self, x=None, n=20, axes='plot', ax=None, show=True, color='k', marker='.'):
@@ -409,6 +411,6 @@ class CrossValidation(object):
           return ax
       
     else:
-      print "No data attributes to plot."
+      print("No data attributes to plot.")
 
 

@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import romSpline
 import h5py
 import sys
@@ -17,4 +19,4 @@ coords = f[coords_dataset]
 vals = s_h5(coords)
 
 for t,f in zip(coords,vals):
-    print "%.19g\t%.19g" % (t,f)
+    print("%.19g\t%.19g" % (t,f))

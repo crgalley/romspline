@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from __init__ import state
 
 if state._MATPLOTLIB:
@@ -219,7 +221,7 @@ class RandomSeeds(object):
           return ax
     
     else:
-      print "No data to plot. Run make method or set _made attribute to True."
+      print("No data to plot. Run make method or set _made attribute to True.")
     
   
   def plot_samples(self, x, y, ax=None, show=True, xlabel='$x$', ylabel='Size of reduced data, $n$'):
@@ -256,7 +258,7 @@ class RandomSeeds(object):
           return ax
     
     else:
-      print "No data to plot. Run `make` method or set _made attribute to True."
+      print("No data to plot. Run `make` method or set _made attribute to True.")
 
 
 
@@ -301,7 +303,7 @@ def small_spline(x, y, num, tol=1e-6, deg=None, rel=False, parallel=True, verbos
     elif len(np.shape(deg)) == 0:  # deg is a number
       degs = [deg]
     else:
-      raise Exception, "Input for `deg` option not recognized."
+      raise Exception("Input for `deg` option not recognized.")
   for dd in degs:
     assert (dd in range(1,6)), "Expecting degree(s) to be one or more integers in [1,5]."
   
@@ -309,7 +311,7 @@ def small_spline(x, y, num, tol=1e-6, deg=None, rel=False, parallel=True, verbos
   
   for ii, dd in enumerate(degs):
     if verbose:
-      print "Smallest spline for degree {} is...".format(dd),
+      print("Smallest spline for degree {} is...".format(dd),)
     
     # Sample from the set of all possible initial 
     # seeds for this polynomial degree
@@ -317,7 +319,7 @@ def small_spline(x, y, num, tol=1e-6, deg=None, rel=False, parallel=True, verbos
     rand.make(x, y, num, parallel=parallel)
     
     if verbose:  # Print smallest size found in sample
-      print int(np.min(rand.sizes))
+      print(int(np.min(rand.sizes)))
     
     # Find smallest spline in the sample for this polynomial degree
     imin = np.argmin(rand.sizes)

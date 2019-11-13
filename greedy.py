@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from __init__ import _ImportStates
 
 state = _ImportStates()
@@ -189,10 +191,10 @@ class ReducedOrderSpline(object):
       if abs:
         errors = np.abs(errors)
     else:
-      raise Exception, "No spline interpolant to compare against. Run the greedy method."
+      raise Exception("No spline interpolant to compare against. Run the greedy method.")
     
     if verbose:
-      print "Requested tolerance of {} met: ".format(self._tol), np.all(np.abs(errors) <= self.tol)
+      print("Requested tolerance of {} met: ".format(self._tol), np.all(np.abs(errors) <= self.tol))
     
     return errors
   
@@ -251,10 +253,10 @@ class ReducedOrderSpline(object):
             return ax
         
       else:
-        print "No data to plot. Run `greedy` method."
+        print("No data to plot. Run `greedy` method.")
     
     else:
-      print "Error: matplotlib.pyplot module not imported."
+      print("Error: matplotlib.pyplot module not imported.")
   
   
   def write(self, file, slim=False):
@@ -289,7 +291,7 @@ class ReducedOrderSpline(object):
     """
     
     if not state._H5PY:
-      print "h5py module not imported. Try writing data to text (.txt) format."
+      print("h5py module not imported. Try writing data to text (.txt) format.")
       return
     
     # If file is an HDF5 file or group descriptor...
@@ -310,12 +312,12 @@ class ReducedOrderSpline(object):
             fp = h5py.File(file, 'w')
             isopen = True
           except:
-            raise Exception, "Could not open file for writing."
+            raise Exception("Could not open file for writing.")
           if isopen:
             self._write(fp, slim=slim)
             fp.close()
         else:
-          print "Error: h5py module is not imported. Try writing data to text (.txt) format."
+          print("Error: h5py module is not imported. Try writing data to text (.txt) format.")
           return
       
       # Text format
@@ -364,7 +366,7 @@ class ReducedOrderSpline(object):
       if not slim:
         descriptor.create_dataset('errors', data=self.errors, dtype='double', compression='gzip', shuffle=True)
     else:
-      raise Exception, "Descriptor not recognized."
+      raise Exception("Descriptor not recognized.")
   
   
   def read(self, file, group=None):
@@ -418,7 +420,7 @@ def readSpline(file, group=None):
         fp = h5py.File(file, 'r')
         isopen = True
       except:
-        raise Exception, "Could not open file for reading."
+        raise Exception("Could not open file for reading.")
       if isopen:
         gp = fp[group] if group else fp
         deg = gp['deg'][()]
@@ -432,7 +434,7 @@ def readSpline(file, group=None):
         fp.close()
         _made = True
     else:
-      print "Error: h5py module is not imported."
+      print("Error: h5py module is not imported.")
       return
   
   # Text format
@@ -449,7 +451,7 @@ def readSpline(file, group=None):
         errs_isopen = False
       isopen = True
     except:
-      raise IOError, "Could not open file(s) for reading."
+      raise IOError("Could not open file(s) for reading.")
     
     if isopen:
       deg = int(fp_deg.read())
@@ -492,7 +494,7 @@ def readSpline(file, group=None):
     spline._made = _made
     return spline
   else:
-    raise Exception, "Reduced-order spline interpolant could not be constructed from file."
+    raise Exception("Reduced-order spline interpolant could not be constructed from file.")
 
 
 
@@ -537,8 +539,8 @@ def _seed(x, deg=5, seeds=None):
 def _greedy(x, y, tol=1e-6, rel=False, deg=5, verbose=False, seeds=None):
   """Greedy algorithm for building a reduced-order spline"""
   if verbose:
-    print "\nSize", "\t", "Error"
-    print "="*13
+    print("\nSize", "\t", "Error")
+    print("="*13)
   
   if rel:
     ymax = np.max(np.abs(y))
@@ -570,7 +572,7 @@ def _greedy(x, y, tol=1e-6, rel=False, deg=5, verbose=False, seeds=None):
     
     # Print to screen, if requested
     if verbose:
-      print ctr, "\t", errors[-1]
+      print(ctr, "\t", errors[-1])
     
     # Check if greedy error is below tolerance and exit if so
     if errors[-1] < _tol:

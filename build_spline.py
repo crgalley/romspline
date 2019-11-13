@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from __init__ import state
 
 if state._MATPLOTLIB:
@@ -77,7 +79,7 @@ def build_spline(x, y, tol=1e-6, deg=None, rel=False, seeds=None, small=True, cv
   # Build a reduced-order spline with given specifications (deg, tol, etc.)
   if small is False:
     if verbose:
-      print "\nBuilding the reduced-order spline...",
+      print("\nBuilding the reduced-order spline...",)
     if deg is None:
       deg = 5
     spline = greedy.ReducedOrderSpline(x, y, tol=tol, deg=deg, rel=rel, seeds=seeds, verbose=verbose)
@@ -85,7 +87,7 @@ def build_spline(x, y, tol=1e-6, deg=None, rel=False, seeds=None, small=True, cv
   
   # Otherwise, sample the seed values to find a small reduced-order spline
   else:
-    print "\nFinding a smallest reduced-order data set..."
+    print("\nFinding a smallest reduced-order data set...")
     if small is True:  # Default number of seed sets to sample is 10
       num = 10
     else:              # Otherwise, `small` is the number of sets of seed points to sample
@@ -96,7 +98,7 @@ def build_spline(x, y, tol=1e-6, deg=None, rel=False, seeds=None, small=True, cv
     
   
   if cv is not False:
-    print "\nPerforming Monte Carlo K-fold cross-validation..."
+    print("\nPerforming Monte Carlo K-fold cross-validation...")
     if cv is True:  # Default number of Monte Carlo K-fold cross-validation studies to perform
       num = 10
     else:

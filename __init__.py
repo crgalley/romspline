@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 """romSpline
 =========
 
@@ -69,7 +71,7 @@ class _ImportStates(object):
       import numpy as np
     except:
       # Raise an exception if numpy can't be imported
-      raise Exception, "Error: Cannot import `NumPy` module."
+      raise Exception("Error: Cannot import `NumPy` module.")
     
     # Try importing scipy.interpolate.UnivariateSpline class
     try:
@@ -77,14 +79,14 @@ class _ImportStates(object):
     except:
       # Raise an exception if UnivariateSpline can't be imported
       # This class is crucial to RomSpline
-      raise Exception, "Error: Cannot import `scipy.interpolate.UnivariateSpline` class."
+      raise Exception("Error: Cannot import `scipy.interpolate.UnivariateSpline` class.")
       
     # Try importing h5py module
     try:
       import h5py
       self._H5PY = True
     except:
-      print "Warning: Cannot import `h5py` module. File I/O features will be limited to text formats."
+      print("Warning: Cannot import `h5py` module. File I/O features will be limited to text formats.")
       self._H5PY = False
     
     # Try importing matplotlib module
@@ -92,7 +94,7 @@ class _ImportStates(object):
       import matplotlib.pyplot as plt
       self._MATPLOTLIB = True
     except:
-      print "Warning: Cannot import `matplotlib.pyplot` module."
+      print("Warning: Cannot import `matplotlib.pyplot` module.")
       self._MATPLOTLIB = False
     
     # Try importing futures module
@@ -100,7 +102,7 @@ class _ImportStates(object):
       from concurrent.futures import ProcessPoolExecutor, wait, as_completed
       self._FUTURES = True
     except:
-      print "Warning: Cannot import `futures` module. Try running `pip install futures` to install."
+      print("Warning: Cannot import `futures` module. Try running `pip install futures` to install.")
       self._FUTURES = False
     
     # Try importing multiprocessing module
@@ -108,7 +110,7 @@ class _ImportStates(object):
       from multiprocessing import cpu_count
       self._MP = True
     except:
-      print "Warning: Cannot import `multiprocessing` module."
+      print("Warning: Cannot import `multiprocessing` module.")
       self._MP = False
     
     # If can import both futures and multiprocessing modules 
@@ -118,7 +120,7 @@ class _ImportStates(object):
     if self._FUTURES and self._MP:
       self._PARALLEL = True
     else:
-      print "Warning: Parallel computation options will be unavailable."
+      print("Warning: Parallel computation options will be unavailable.")
       self._PARALLEL = False
 
 state = _ImportStates()

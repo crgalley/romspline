@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 """
 Test the reduced-order spline greedy algorithm outputs with
 previously generated data to make sure the code still works correctly.
@@ -36,29 +38,29 @@ def regression():
   
   # Build reduced-order spline interpolant for the
   # test data using options found in regressionData.h5.
-  print "Building reduced-order spline...",
+  print("Building reduced-order spline...",)
   test_spline = greedy.ReducedOrderSpline(test.x, test.y, deg=deg, tol=tol)
-  print "Done"
+  print("Done")
   
   # Perform a few checks on the greedy algorithm
-  print "Testing greedy algorithm:"
+  print("Testing greedy algorithm:")
   
-  print "  Comparing reduced data size...",
+  print("  Comparing reduced data size...",)
   if test_spline.size == len(X):
-    print "Passed"
+    print("Passed")
   else:
-    print "Failed [Size of reduced data ({}) does not equal {}]".format(test_spline.size, len(X))
+    print("Failed [Size of reduced data ({}) does not equal {}]".format(test_spline.size, len(X)))
   
-  print "  Comparing selected array indices...",
+  print("  Comparing selected array indices...",)
   if np.all([test_spline.args[ii] == args[ii] for ii in range(len(args))]):
-    print "Passed"
+    print("Passed")
   else:
-    print "Failed"
+    print("Failed")
   
-  print "  Comparing greedy errors...",
+  print("  Comparing greedy errors...",)
   if np.all([np.isclose(test_spline.errors[ii], errors[ii]) for ii in range(len(errors))]):
-    print "Passed"
+    print("Passed")
   else:
-    print "Failed"
+    print("Failed")
 
 

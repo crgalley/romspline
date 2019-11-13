@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from __init__ import state
 
 if state._MATPLOTLIB:
@@ -203,7 +205,7 @@ class Convergence(object):
           return ax
       
     else:
-      print "No data to plot. Run `make` method."
+      print("No data to plot. Run `make` method.")
   
   
   def _plot_Linfty_errors(self, ax):
@@ -234,7 +236,7 @@ class Convergence(object):
           return ax
         
     else:
-      print "No data to plot. Run `make` method."
+      print("No data to plot. Run `make` method.")
   
   
   def _plot_sizes(self, ax, axes=None):
@@ -308,6 +310,6 @@ class Convergence(object):
           return ax
         
     else:
-      print "No data to plot. Run `make` method."
+      print("No data to plot. Run `make` method.")
 
 
