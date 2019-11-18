@@ -11,7 +11,8 @@ if state._H5PY:
   import h5py
 
 import numpy as np
-import romspline.greedy, romspline.example
+import romspline.greedy as greedy
+import romspline.example as example
 
 
 def regression():

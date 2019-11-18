@@ -6,7 +6,9 @@ if state._MATPLOTLIB:
   import matplotlib.pyplot as plt
 
 import numpy as np
-import romspline.greedy, romspline.random_seeds, romspline.cross_validation
+import romspline.greedy as greedy
+import romspline.random_seeds as random_seeds
+import romspline.cross_validation as cross_validation
 
 
 def build_spline(x, y, tol=1e-6, deg=None, rel=False, seeds=None, small=True, cv=True, K=10, parallel=True, verbose=True):

@@ -8,7 +8,7 @@ if state._PARALLEL:
   from romspline.__init__ import ProcessPoolExecutor, wait, as_completed, cpu_count
 
 import numpy as np
-import romspline.greedy
+import romspline.greedy as greedy
 from romspline.helpers import *
 
 

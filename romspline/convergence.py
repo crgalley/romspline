@@ -6,7 +6,7 @@ if state._MATPLOTLIB:
   import matplotlib.pyplot as plt
 
 import numpy as np
-import romspline.greedy
+import romspline.greedy as greedy
 from romspline.helpers import Linfty
 
 
