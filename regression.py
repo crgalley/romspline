@@ -5,13 +5,13 @@ Test the reduced-order spline greedy algorithm outputs with
 previously generated data to make sure the code still works correctly.
 """
 
-from __init__ import state
+from romspline.__init__ import state
 
 if state._H5PY:
   import h5py
 
 import numpy as np
-import greedy, example
+import romspline.greedy, romspline.example
 
 
 def regression():

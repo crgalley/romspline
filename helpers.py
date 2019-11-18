@@ -1,4 +1,4 @@
-from __init__ import state
+from romspline.__init__ import state
 import numpy as np
 
 

@@ -1,15 +1,15 @@
 from __future__ import print_function
 
-from __init__ import state
+from romspline.__init__ import state
 
 if state._MATPLOTLIB:
   import matplotlib.pyplot as plt
 if state._PARALLEL:
-  from __init__ import ProcessPoolExecutor, wait, as_completed, cpu_count
+  from romspline.__init__ import ProcessPoolExecutor, wait, as_completed, cpu_count
 
 import numpy as np
-import greedy
-from helpers import *
+import romspline.greedy
+from romspline.helpers import *
 
 
 

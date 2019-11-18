@@ -1,13 +1,12 @@
 from __future__ import print_function
 
-from __init__ import state
+from romspline.__init__ import state
 
 if state._MATPLOTLIB:
   import matplotlib.pyplot as plt
 
 import numpy as np
-import greedy, random_seeds, cross_validation
-
+import romspline.greedy, romspline.random_seeds, romspline.cross_validation
 
 
 def build_spline(x, y, tol=1e-6, deg=None, rel=False, seeds=None, small=True, cv=True, K=10, parallel=True, verbose=True):
