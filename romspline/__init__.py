@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 """romSpline
 =========
 
@@ -33,6 +31,10 @@ Chad R. Galley and Patricia Schmidt
 
 """
 
+from __future__ import print_function
+
+from .__version__ import __version__
+
 __copyright__ = "Copyright (C) 2015 Chad Galley"
 __author__ = "Chad Galley"
 __email__ = "crgalley@tapir.caltech.edu, crgalley@gmail.com"
@@ -55,6 +57,18 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
+
+__bibtex__ = r"""@article{Galley:2016mvy,
+      author         = "Galley, Chad R. and Schmidt, Patricia",
+      title          = "{Fast and efficient evaluation of gravitational waveforms
+                        via reduced-order spline interpolation}",
+      year           = "2016",
+      eprint         = "1611.07529",
+      archivePrefix  = "arXiv",
+      primaryClass   = "gr-qc",
+      reportNumber   = "LIGO-P1600064",
+      SLACcitation   = "%%CITATION = ARXIV:1611.07529;%%"
+}"""
 
 
 ############################

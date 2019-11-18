@@ -19,14 +19,39 @@ If you use this code for academic work then please cite the following paper desc
 
 ### Installation ###
 
-To set up romSpline, download or clone this repository and add the download path to your PYTHONPATH variable. 
+_**romspline**_ is available through [PyPI](https://pypi.org/project/romspline/):
 
-Alternatively, include the following lines in your Python code:
+```shell
+pip install romspline
+```
+
+### From source
+
+```shell
+git clone https://github.com/crgalley/romspline.git
+cd romspline
+python setup.py install
+```
+
+If you do not have root permissions, replace the last step with
+`python setup.py install --user`.  Instead of using `setup.py`
+manually, you can also replace the last step with `pip install .` or
+`pip install --user .`.
+
+Alternatively, you can download or clone this repository and add the
+download path to your PYTHONPATH variable.
+
+As another alternative, include the following lines in your Python code:
 
     import sys
     sys.path.append(<path to romspline>)
     import romspline
 
+### Dependencies
+All of these can be installed through pip or conda.
+* [numpy](https://docs.scipy.org/doc/numpy/user/install.html)
+* [scipy](https://www.scipy.org/install.html)
+* [h5py](https://pypi.org/project/h5py/)
 
 romSpline requires NumPy, SciPy, and H5py, which come with most Python distributions. For parallelization, which is useful but not necessary for some of the cross-validation routines, romSpline currently uses the concurrent.futures module. If you are using Python 2 and do not have concurrent.futures installed you may install it using pip:
 
