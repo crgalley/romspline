@@ -547,8 +547,7 @@ def _greedy(x, y, tol=1e-6, rel=False, deg=5, verbose=False, seeds=None):
     assert ymax > 0., "All data samples are zero."
   else:
     ymax = 1.
-  #_tol = tol*ymax
-  _tol = tol # moved ymax into errs, so relative errors are returned 
+  _tol = tol*ymax
   
   # Seed greedy algorithm
   indices, errors = _seed(x, deg=deg, seeds=seeds)
@@ -561,7 +560,7 @@ def _greedy(x, y, tol=1e-6, rel=False, deg=5, verbose=False, seeds=None):
     s = UnivariateSpline(x[indices], y[indices], k=deg, s=0)
     
     # L-infinity errors of current spline interpolant and data
-    errs = np.abs( s(x)-y ) / ymax
+    errs = np.abs( s(x)-y )
     
     # Get the index of the largest interpolation error on y
     imax = np.argmax( errs )
@@ -578,8 +577,9 @@ def _greedy(x, y, tol=1e-6, rel=False, deg=5, verbose=False, seeds=None):
     # Check if greedy error is below tolerance and exit if so
     if errors[-1] < _tol:
       flag = 1
+      args = args[:-1]
       indices = np.sort(args)
-      errors = np.array(errors)
+      errors = np.array(errors[:-1])
     
     ctr += 1
   
