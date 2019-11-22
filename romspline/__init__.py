@@ -21,7 +21,7 @@ on using the interpolation error assessment and estimation features of the
 romSpline.
 
 If you find this code useful for your publication work then please
-cite the code repository (www.bitbucket.org/chadgalley/romSpline)
+cite the code repository (https://github.com/crgalley/romspline)
 and the corresponding paper that discusses and characterizes the
 reduced-order spline method (available at https://arxiv.org/abs/1611.07529):
 
