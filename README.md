@@ -1,3 +1,8 @@
+[![github](https://img.shields.io/badge/GitHub-romspline-blue.svg)](https://github.com/crgalley/romspline)
+[![PyPI version](https://badge.fury.io/py/romspline.svg)](https://badge.fury.io/py/romspline)
+[![arXiv:1611.07529](https://img.shields.io/badge/arXiv-1611.07529-B31B1B.svg)](https://arxiv.org/abs/1611.07529)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/crgalley/romspline/blob/master/LICENSE)
+
 # Welcome to romSpline #
 
 romSpline is an easy-to-use Python code for compressing and interpolating 1d data using reduced-order modeling and statistical learning methods.
