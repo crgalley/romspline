@@ -21,7 +21,7 @@ def regression():
   # code-checking purposes.
   
   # But first, get the path to the data file
-  path = greedy.__file__.split('/')[:-1]
+  path = __file__.split('/')[:-1]
   path = '/'.join(path)
   
   # Now load the data

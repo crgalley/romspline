@@ -30,6 +30,8 @@ setuptools.setup(
         'scipy',
         'h5py',
     ],
+    package_data={'romspline':['regressionData.h5']},
+    include_package_data=True,
     classifiers=[
         "Intended Audience :: Science/Research",
         "Natural Language :: English",
