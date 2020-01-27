@@ -145,8 +145,8 @@ state = _ImportStates()
 #####################
 
 
-from romspline.greedy import *            # For building reduced-order splines
 from romspline.convergence import *       # For studying convergence
+from romspline.greedy import *            # For building reduced-order splines
 from romspline.random_seeds import *      # For studying the effect of seed points on reduced data sizes
 from romspline.cross_validation import *  # For estimating (global) interpolation errors
 from romspline.build_spline import *      # Convenience module for bulding reduced-order spline
