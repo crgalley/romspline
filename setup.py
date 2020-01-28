@@ -28,7 +28,8 @@ setuptools.setup(
     install_requires=[
         'numpy',
         'scipy',
-        'h5py',
+        'h5py>=2.7.0',
+        'pathlib2 ; python_version < \'3.4\'',
     ],
     package_data={'romspline':['regressionData.h5']},
     classifiers=[

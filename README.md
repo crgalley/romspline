@@ -57,6 +57,8 @@ All of these can be installed through pip or conda.
 * [numpy](https://docs.scipy.org/doc/numpy/user/install.html)
 * [scipy](https://www.scipy.org/install.html)
 * [h5py](https://pypi.org/project/h5py/)
+* [pathlib2](https://pypi.org/project/pathlib2/) (backport of
+  `pathlib` to pre-3.4 python)
 
 romSpline requires NumPy, SciPy, and H5py, which come with most Python distributions. For parallelization, which is useful but not necessary for some of the cross-validation routines, romSpline currently uses the concurrent.futures module. If you are using Python 2 and do not have concurrent.futures installed you may install it using pip:
 

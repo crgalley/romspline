@@ -7,6 +7,10 @@ if state._MATPLOTLIB:
   import matplotlib.pyplot as plt
 if state._H5PY:
   import h5py
+try:
+    from pathlib import Path # py 3
+except ImportError:
+    from pathlib2 import Path # py 2
 
 import numpy as np, os
 from scipy.interpolate import UnivariateSpline
