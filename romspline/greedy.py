@@ -5,8 +5,9 @@ from romspline.__init__ import _ImportStates
 state = _ImportStates()
 if state._MATPLOTLIB:
   import matplotlib.pyplot as plt
-if state._H5PY:
-  import h5py
+
+import h5py
+
 try:
     from pathlib import Path # py 3
 except ImportError:
@@ -294,10 +295,6 @@ class ReducedOrderSpline(object):
     the reduced order spline data.
     """
     
-    if not state._H5PY:
-      print("h5py module not imported. Try writing data to text (.txt) format.")
-      return
-    
     # If file is an HDF5 file or group descriptor...
     if file.__class__ in [h5py._hl.files.File, h5py._hl.group.Group]:
       self._write(file, slim=slim)
@@ -312,18 +309,14 @@ class ReducedOrderSpline(object):
       
       # HDF5 format
       if file_extension in ['.h5', '.hdf5']:
-        if state._H5PY:
-          try:
-            fp = h5py.File(file, 'w')
-            isopen = True
-          except:
-            raise Exception("Could not open file for writing.")
-          if isopen:
-            self._write(fp, slim=slim)
-            fp.close()
-        else:
-          print("Error: h5py module is not imported. Try writing data to text (.txt) format.")
-          return
+        try:
+          fp = h5py.File(file, 'w')
+          isopen = True
+        except:
+          raise Exception("Could not open file for writing.")
+        if isopen:
+          self._write(fp, slim=slim)
+          fp.close()
 
       # Text format
       if file_extension == '.txt':
@@ -414,27 +407,23 @@ def readSpline(file, group=None):
   
   # HDF5 format
   if file_extension in ['.h5', '.hdf5']:
-    if state._H5PY:
-      try:
-        fp = h5py.File(file, 'r')
-        isopen = True
-      except:
-        raise Exception("Could not open file for reading.")
-      if isopen:
-        gp = fp[group] if group else fp
-        deg = gp['deg'][()]
-        tol = gp['tol'][()]
-        X = gp['X'][:]
-        Y = gp['Y'][:]
-        if hasattr(gp, 'errors') or 'errors' in gp.keys():
-          errors = gp['errors'][:]
-        else:
-          errors = []
-        fp.close()
-        _made = True
-    else:
-      print("Error: h5py module is not imported.")
-      return
+    try:
+      fp = h5py.File(file, 'r')
+      isopen = True
+    except:
+      raise Exception("Could not open file for reading.")
+    if isopen:
+      gp = fp[group] if group else fp
+      deg = gp['deg'][()]
+      tol = gp['tol'][()]
+      X = gp['X'][:]
+      Y = gp['Y'][:]
+      if hasattr(gp, 'errors') or 'errors' in gp.keys():
+        errors = gp['errors'][:]
+      else:
+        errors = []
+      fp.close()
+      _made = True
   
   # Text format
   if file_extension == '.txt':

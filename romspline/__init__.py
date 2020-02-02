@@ -80,29 +80,6 @@ class _ImportStates(object):
   """Class container for state of module imports."""
   
   def __init__(self):
-    # Try importing numpy module
-    try:
-      import numpy as np
-    except:
-      # Raise an exception if numpy can't be imported
-      raise Exception("Error: Cannot import `NumPy` module.")
-    
-    # Try importing scipy.interpolate.UnivariateSpline class
-    try:
-      from scipy.interpolate import UnivariateSpline
-    except:
-      # Raise an exception if UnivariateSpline can't be imported
-      # This class is crucial to RomSpline
-      raise Exception("Error: Cannot import `scipy.interpolate.UnivariateSpline` class.")
-      
-    # Try importing h5py module
-    try:
-      import h5py
-      self._H5PY = True
-    except:
-      print("Warning: Cannot import `h5py` module. File I/O features will be limited to text formats.")
-      self._H5PY = False
-    
     # Try importing matplotlib module
     try:
       import matplotlib.pyplot as plt
