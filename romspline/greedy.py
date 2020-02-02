@@ -13,6 +13,11 @@ try:
 except ImportError:
     from pathlib2 import Path # py 2
 
+import sys
+# This makes me feel so dirty...
+if sys.version_info[0] >= 3:
+    unicode = str
+
 import numpy as np, os
 from scipy.interpolate import UnivariateSpline
 
@@ -330,21 +335,21 @@ class ReducedOrderSpline(object):
              (file / 'X.txt').open('w') as X_f, \
              (file / 'Y.txt').open('w') as Y_f:
           # Write polynomial degree of reduced-order spline
-          deg_f.write(str(self._deg))
+          deg_f.write(unicode(self._deg))
           # Write greedy algorithm tolerance
-          tol_f.write(str(self.tol))
+          tol_f.write(unicode(self.tol))
           # Write nearly optimal subset of x data (i.e., "knots")
           for xx in self.X:
-            X_f.write(str(xx)+'\n')
+            X_f.write(unicode(xx)+'\n')
           # Write nearly optimal subset of y data
           for yy in self.Y:
-            Y_f.write(str(yy)+'\n')
+            Y_f.write(unicode(yy)+'\n')
 
         # Write L-infinity spline errors from greedy algorithm
         if not slim:
           with (file / 'errors.txt').open('w') as err_f:
             for ee in self.errors:
-              err_f.write(str(ee)+'\n')
+              err_f.write(unicode(ee)+'\n')
 
 
   def _write(self, descriptor, slim=False):
