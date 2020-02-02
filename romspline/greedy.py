@@ -312,8 +312,8 @@ class ReducedOrderSpline(object):
         try:
           fp = h5py.File(file, 'w')
           isopen = True
-        except:
-          raise Exception("Could not open file for writing.")
+        except Exception as err:
+          raise Exception("Could not open file for writing, error: {}".format(err))
         if isopen:
           self._write(fp, slim=slim)
           fp.close()
@@ -410,8 +410,8 @@ def readSpline(file, group=None):
     try:
       fp = h5py.File(file, 'r')
       isopen = True
-    except:
-      raise Exception("Could not open file for reading.")
+    except Exception as err:
+      raise Exception("Could not open file for reading, error: {}".format(err))
     if isopen:
       gp = fp[group] if group else fp
       deg = gp['deg'][()]
