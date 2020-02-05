@@ -5,8 +5,18 @@ from romspline.__init__ import _ImportStates
 state = _ImportStates()
 if state._MATPLOTLIB:
   import matplotlib.pyplot as plt
-if state._H5PY:
-  import h5py
+
+import h5py
+
+try:
+    from pathlib import Path # py 3
+except ImportError:
+    from pathlib2 import Path # py 2
+
+import sys
+# This makes me feel so dirty...
+if sys.version_info[0] >= 3:
+    unicode = str
 
 import numpy as np, os
 from scipy.interpolate import UnivariateSpline
@@ -290,72 +300,58 @@ class ReducedOrderSpline(object):
     the reduced order spline data.
     """
     
-    if not state._H5PY:
-      print("h5py module not imported. Try writing data to text (.txt) format.")
-      return
-    
     # If file is an HDF5 file or group descriptor...
     if file.__class__ in [h5py._hl.files.File, h5py._hl.group.Group]:
       self._write(file, slim=slim)
     
     # If file is a file name...
-    elif type(file) is str:
+    elif isinstance(file, (str, Path)):
+      file = Path(file)
       # Get file name and extension
       types = ['.txt', '.h5', '.hdf5']
-      filename, file_extension = os.path.splitext(file)
+      file_extension = file.suffix
       assert file_extension in types, "File type must have extension txt, h5, or hdf5."
       
       # HDF5 format
-      if file_extension == '.h5' or file_extension == '.hdf5':
-        if state._H5PY:
-          try:
-            fp = h5py.File(file, 'w')
-            isopen = True
-          except:
-            raise Exception("Could not open file for writing.")
-          if isopen:
-            self._write(fp, slim=slim)
-            fp.close()
-        else:
-          print("Error: h5py module is not imported. Try writing data to text (.txt) format.")
-          return
-      
+      if file_extension in ['.h5', '.hdf5']:
+        try:
+          fp = h5py.File(file, 'w')
+          isopen = True
+        except Exception as err:
+          raise Exception("Could not open file for writing, error: {}".format(err))
+        if isopen:
+          self._write(fp, slim=slim)
+          fp.close()
+
       # Text format
       if file_extension == '.txt':
         # Make directory with given filename
-        if not os.path.exists(file):
-            os.makedirs(file)
-        
-        # Write polynomial degree of reduced-order spline
-        fp = open(file+'/deg.txt', 'w')
-        fp.write(str(self._deg))
-        fp.close()
-        
-        # Write greedy algorithm tolerance
-        fp = open(file+'/tol.txt', 'w')
-        fp.write(str(self.tol))
-        fp.close()
-        
-        # Write nearly optimal subset of x data (i.e., "knots")
-        fp = open(file+'/X.txt', 'w')
-        for xx in self.X:
-          fp.write(str(xx)+'\n')
-        fp.close()
-        
-        # Write nearly optimal subset of y data
-        fp = open(file+'/Y.txt', 'w')
-        for yy in self.Y:
-          fp.write(str(yy)+'\n')
-        fp.close()
-        
+        if not file.exists():
+          file.mkdir(parents=True)
+
+        # Try to open as many things as possible in the same context manager
+        with (file / 'deg.txt').open('w') as deg_f, \
+             (file / 'tol.txt').open('w') as tol_f, \
+             (file / 'X.txt').open('w') as X_f, \
+             (file / 'Y.txt').open('w') as Y_f:
+          # Write polynomial degree of reduced-order spline
+          deg_f.write(unicode(self._deg))
+          # Write greedy algorithm tolerance
+          tol_f.write(unicode(self.tol))
+          # Write nearly optimal subset of x data (i.e., "knots")
+          for xx in self.X:
+            X_f.write(unicode(xx)+'\n')
+          # Write nearly optimal subset of y data
+          for yy in self.Y:
+            Y_f.write(unicode(yy)+'\n')
+
         # Write L-infinity spline errors from greedy algorithm
         if not slim:
-          fp = open(file+'/errors.txt', 'w')
-          for ee in self.errors:
-            fp.write(str(ee)+'\n')
-          fp.close()
-  
-  
+          with (file / 'errors.txt').open('w') as err_f:
+            for ee in self.errors:
+              err_f.write(unicode(ee)+'\n')
+
+
   def _write(self, descriptor, slim=False):
     """Write reduced order spline data to HDF5 file given a file or group descriptor"""
     if descriptor.__class__ in [h5py._hl.files.File, h5py._hl.group.Group]:
@@ -410,76 +406,52 @@ def readSpline(file, group=None):
   
   # Get file name and extension
   types = ['.txt', '.h5', '.hdf5']
-  filename, file_extension = os.path.splitext(file)
+  file = Path(file).resolve()
+  file_extension = file.suffix
   assert file_extension in types, "File type must be have extension txt, h5, or hdf5."
   
   # HDF5 format
-  if file_extension == '.h5' or file_extension == '.hdf5':
-    if state._H5PY:
-      try:
-        fp = h5py.File(file, 'r')
-        isopen = True
-      except:
-        raise Exception("Could not open file for reading.")
-      if isopen:
-        gp = fp[group] if group else fp
-        deg = gp['deg'][()]
-        tol = gp['tol'][()]
-        X = gp['X'][:]
-        Y = gp['Y'][:]
-        if hasattr(gp, 'errors') or 'errors' in gp.keys():
-          errors = gp['errors'][:]
-        else:
-          errors = []
-        fp.close()
-        _made = True
-    else:
-      print("Error: h5py module is not imported.")
-      return
+  if file_extension in ['.h5', '.hdf5']:
+    try:
+      fp = h5py.File(file, 'r')
+      isopen = True
+    except Exception as err:
+      raise Exception("Could not open file for reading, error: {}".format(err))
+    if isopen:
+      gp = fp[group] if group else fp
+      deg = gp['deg'][()]
+      tol = gp['tol'][()]
+      X = gp['X'][:]
+      Y = gp['Y'][:]
+      if hasattr(gp, 'errors') or 'errors' in gp.keys():
+        errors = gp['errors'][:]
+      else:
+        errors = []
+      fp.close()
+      _made = True
   
   # Text format
   if file_extension == '.txt':
+
+    # Try to open as many things as possible in the same context manager
+    with (file / 'deg.txt').open('r') as deg_f, \
+         (file / 'tol.txt').open('r') as tol_f, \
+         (file / 'X.txt').open('r') as X_f, \
+         (file / 'Y.txt').open('r') as Y_f:
+      deg = int(deg_f.read())
+
+      tol = float(tol_f.read())
+
+      X = np.loadtxt(X_f)
+      Y = np.loadtxt(Y_f)
+
     try:
-      fp_deg = open(file+'/deg.txt', 'r')
-      fp_tol = open(file+'/tol.txt', 'r')
-      fp_X = open(file+'/X.txt', 'r')
-      fp_Y = open(file+'/Y.txt', 'r')
-      try:
-        fp_errs = open(file+'/errors.txt', 'r')
-        errs_isopen = True
-      except:
-        errs_isopen = False
-      isopen = True
+      with (file / 'err.txt').open('r') as err_f:
+        errors = np.loadtxt(err_f)
     except:
-      raise IOError("Could not open file(s) for reading.")
-    
-    if isopen:
-      deg = int(fp_deg.read())
-      fp_deg.close()
-      
-      tol = float(fp_tol.read())
-      fp_tol.close()
-      
-      X = []
-      for line in fp_X:
-        X.append( float(line) )
-      X = np.array(X)
-      fp_X.close()
-      
-      Y = []
-      for line in fp_Y:
-        Y.append( float(line) )
-      Y = np.array(Y)
-      fp_Y.close()
-      
       errors = []
-      if errs_isopen:
-        for line in fp_errs:
-          errors.append( float(line) )
-        errors = np.array(errors)
-        fp_errs.close()
       
-      _made = True
+    _made = True
   
   if _made:
     spline = ReducedOrderSpline()

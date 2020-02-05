@@ -5,10 +5,12 @@ Test the reduced-order spline greedy algorithm outputs with
 previously generated data to make sure the code still works correctly.
 """
 
-from romspline.__init__ import state
+import h5py
 
-if state._H5PY:
-  import h5py
+try:
+    from pathlib import Path # py 3
+except ImportError:
+    from pathlib2 import Path # py 2
 
 import numpy as np
 import romspline.greedy as greedy
@@ -21,11 +23,10 @@ def regression():
   # code-checking purposes.
   
   # But first, get the path to the data file
-  path = __file__.split('/')[:-1]
-  path = '/'.join(path)
+  path = Path(__file__).parent
   
   # Now load the data
-  fp = h5py.File(path+'/regressionData.h5', 'r')
+  fp = h5py.File(path / 'regressionData.h5', 'r')
   X = fp['X'][:]
   Y = fp['Y'][:]
   deg = fp['deg'][()]
