@@ -3,6 +3,7 @@
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/romspline.svg)](https://anaconda.org/conda-forge/romspline)
 [![arXiv:1611.07529](https://img.shields.io/badge/arXiv-1611.07529-B31B1B.svg)](https://arxiv.org/abs/1611.07529)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/crgalley/romspline/blob/master/LICENSE)
+[![Run pytest](https://github.com/crgalley/romspline/workflows/Run%20pytest/badge.svg)](https://github.com/crgalley/romspline/actions?query=workflow%3A%22Run+pytest%22)
 
 # Welcome to romSpline #
 
