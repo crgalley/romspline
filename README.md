@@ -1,5 +1,6 @@
 [![github](https://img.shields.io/badge/GitHub-romspline-blue.svg)](https://github.com/crgalley/romspline)
 [![PyPI version](https://badge.fury.io/py/romspline.svg)](https://badge.fury.io/py/romspline)
+[![Conda Version](https://img.shields.io/conda/vn/conda-forge/romspline.svg)](https://anaconda.org/conda-forge/romspline)
 [![arXiv:1611.07529](https://img.shields.io/badge/arXiv-1611.07529-B31B1B.svg)](https://arxiv.org/abs/1611.07529)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/crgalley/romspline/blob/master/LICENSE)
 
@@ -22,12 +23,20 @@ If you use this code for academic work then please cite the following paper desc
 [arXiv:1611.07529](https://arxiv.org/abs/1611.07529)
 
 
-### Installation ###
+## Installation
 
+### PyPI
 _**romspline**_ is available through [PyPI](https://pypi.org/project/romspline/):
 
 ```shell
 pip install romspline
+```
+
+### Conda
+_**romspline**_ is available on [conda-forge](https://anaconda.org/conda-forge/romspline):
+
+```shell
+conda install -c conda-forge romspline
 ```
 
 ### From source
@@ -52,7 +61,7 @@ As another alternative, include the following lines in your Python code:
     sys.path.append(<path to romspline>)
     import romspline
 
-### Dependencies
+## Dependencies
 All of these can be installed through pip or conda.
 * [numpy](https://docs.scipy.org/doc/numpy/user/install.html)
 * [scipy](https://www.scipy.org/install.html)
@@ -67,7 +76,7 @@ romSpline requires NumPy, SciPy, and H5py, which come with most Python distribut
 Future versions of romSpline will not use concurrent.futures.
 
 
-### Getting started ###
+## Getting started
 
 See the accompanying IPython notebooks (romSpline_example.ipynb and errors_example.ipynb) for simple tutorials on using the code and estimating
 errors of the reduced-order spline interpolant for predicting new values. 
